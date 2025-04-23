@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>여행 경로 - 나라투어</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- 지도 API -->
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=KAKAO_MAP_API_KEY&libraries=services,drawing"></script>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container">
+                <a class="navbar-brand" href="../index.html">
+                    <img src="../assets/images/naraicon.jpg" alt="나라투어 로고" width="30" height="30" class="d-inline-block align-text-top">
+                    나라투어
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="../index.html">홈</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="performances.html">공연 정보</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="routes.html">여행 경로</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="regions.html">지역별 정보</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="page-header bg-light py-5">
+            <div class="container">
+                <h1>여행 경로 계획</h1>
+                <p class="lead">원하는 여행지를 선택하여 최적의 경로를 계획하세요.</p>
+            </div>
+        </section>
+
+        <section class="route-planner py-4">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                여행 계획
+                            </div>
+                            <div class="card-body">
+                                <form id="route-form">
+                                    <div class="mb-3">
+                                        <label for="region-select" class="form-label">지역 선택</label>
+                                        <select class="form-select" id="region-select">
+                                            <option value="">지역 선택</option>
+                                            <option value="서울">서울</option>
+                                            <option value="경기도">경기도</option>
+                                            <option value="강원도">강원도</option>
+                                            <option value="충청북도">충청북도</option>
+                                            <option value="충청남도">충청남도</option>
+                                            <option value="전라북도">전라북도</option>
+                                            <option value="전라남도">전라남도</option>
+                                            <option value="경상북도">경상북도</option>
+                                            <option value="경상남도">경상남도</option>
+                                            <option value="제주도">제주도</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="days" class="form-label">여행 일수</label>
+                                        <select class="form-select" id="days">
+                                            <option value="1">1일</option>
+                                            <option value="2">2일</option>
+                                            <option value="3" selected>3일</option>
+                                            <option value="4">4일</option>
+                                            <option value="5">5일</option>
+                                            <option value="6">6일</option>
+                                            <option value="7">7일</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">선호 장소 유형</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" value="관광명소" id="prefer-tourism" checked>
+                                            <label class="form-check-label" for="prefer-tourism">
+                                                관광명소
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" value="자연" id="prefer-nature" checked>
+                                            <label class="form-check-label" for="prefer-nature">
+                                                자연/풍경
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" value="문화" id="prefer-culture" checked>
+                                            <label class="form-check-label" for="prefer-culture">
+                                                문화/역사
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" value="맛집" id="prefer-food" checked>
+                                            <label class="form-check-label" for="prefer-food">
+                                                맛집
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100">경로 계획하기</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                선택된 장소
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group" id="selected-places">
+                                    <li class="list-group-item text-center text-muted">장소를 선택해주세요</li>
+                                </ul>
+                                <div class="mt-3">
+                                    <button class="btn btn-outline-primary btn-sm w-100" id="optimize-route">최적 경로 계산</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card mb-4">
+                            <div class="card-body p-0">
+                                <div id="route-map" style="width:100%; height:500px;"></div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                추천 장소
+                            </div>
+                            <div class="card-body">
+                                <div class="row" id="recommended-places">
+                                    <div class="col-12 text-center py-5">
+                                        <p class="text-muted">지역을 선택하면 추천 장소가 표시됩니다.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="route-details py-4">
+            <div class="container">
+                <h2>일정표</h2>
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="itinerary-table">
+                        <thead>
+                            <tr>
+                                <th>일자</th>
+                                <th>시간</th>
+                                <th>장소</th>
+                                <th>세부 정보</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">경로를 계획하면 일정표가 표시됩니다.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button class="btn btn-success" id="save-itinerary">일정표 저장</button>
+                    <button class="btn btn-outline-secondary ms-2" id="share-itinerary">공유하기</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-dark text-white py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>나라투어</h5>
+                    <p>대한민국의 아름다운 여행지와 경험을 발견하세요.</p>
+                </div>
+                <div class="col-md-3">
+                    <h5>바로가기</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="../index.html" class="text-white">홈</a></li>
+                        <li><a href="performances.html" class="text-white">공연 정보</a></li>
+                        <li><a href="routes.html" class="text-white">여행 경로</a></li>
+                        <li><a href="regions.html" class="text-white">지역별 정보</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5>연락처</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-envelope me-2"></i> info@naratour.com</li>
+                        <li><i class="fas fa-phone me-2"></i> 02-123-4567</li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <p>&copy; 2025 나라투어. 모든 권리 보유.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- 사용자 정의 스크립트 -->
+    <script src="../assets/js/main.js"></script>
+    <script src="../assets/js/routes.js"></script>
+</body>
+</html>
