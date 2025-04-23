@@ -1,2 +1,2 @@
 # nara-tour-web
-https://naratour.github.io
+https://2nazero.github.io/naratour.github.io
