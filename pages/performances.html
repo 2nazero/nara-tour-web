@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>공연 정보 - 나라투어</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- 데이트피커 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container">
+                <a class="navbar-brand" href="../index.html">
+                    <img src="../assets/images/naraicon.jpg" alt="나라투어 로고" width="30" height="30" class="d-inline-block align-text-top">
+                    나라투어
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="../index.html">홈</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="performances.html">공연 정보</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="routes.html">여행 경로</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="regions.html">지역별 정보</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="page-header bg-light py-5">
+            <div class="container">
+                <h1>공연 정보</h1>
+                <p class="lead">전국의 다양한 공연 정보를 찾아보세요.</p>
+            </div>
+        </section>
+
+        <section class="filters py-4">
+            <div class="container">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">검색 필터</h5>
+                        <form id="performance-filter-form">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label for="region" class="form-label">지역</label>
+                                    <select class="form-select" id="region">
+                                        <option value="">전체 지역</option>
+                                        <option value="서울">서울</option>
+                                        <option value="경기도">경기도</option>
+                                        <option value="강원도">강원도</option>
+                                        <option value="충청북도">충청북도</option>
+                                        <option value="충청남도">충청남도</option>
+                                        <option value="전라북도">전라북도</option>
+                                        <option value="전라남도">전라남도</option>
+                                        <option value="경상북도">경상북도</option>
+                                        <option value="경상남도">경상남도</option>
+                                        <option value="제주도">제주도</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="performance-type" class="form-label">공연 유형</label>
+                                    <select class="form-select" id="performance-type">
+                                        <option value="">모든 유형</option>
+                                        <option value="콘서트">콘서트</option>
+                                        <option value="연극">연극</option>
+                                        <option value="뮤지컬">뮤지컬</option>
+                                        <option value="오페라">오페라</option>
+                                        <option value="클래식">클래식</option>
+                                        <option value="전시회">전시회</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="date-range" class="form-label">날짜 범위</label>
+                                    <input type="text" class="form-control" id="date-range" placeholder="날짜 선택">
+                                </div>
+                                <div class="col-md-3 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary w-100">검색</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="performances-list py-4">
+            <div class="container">
+                <h2 class="mb-4">추천 공연</h2>
+                <div class="row" id="performances-container">
+                    <!-- 여기에 공연 정보가 동적으로 추가됩니다 -->
+                    <div class="col-12 text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 페이지네이션 -->
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center" id="pagination">
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">이전</a>
+                        </li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                        <li class="page-item">
+                            <a class="page-link" href="#">다음</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-dark text-white py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>나라투어</h5>
+                    <p>대한민국의 아름다운 여행지와 경험을 발견하세요.</p>
+                </div>
+                <div class="col-md-3">
+                    <h5>바로가기</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="../index.html" class="text-white">홈</a></li>
+                        <li><a href="performances.html" class="text-white">공연 정보</a></li>
+                        <li><a href="routes.html" class="text-white">여행 경로</a></li>
+                        <li><a href="regions.html" class="text-white">지역별 정보</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5>연락처</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-envelope me-2"></i> info@naratour.com</li>
+                        <li><i class="fas fa-phone me-2"></i> 02-123-4567</li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <p>&copy; 2025 나라투어. 모든 권리 보유.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- 데이트피커 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+    <!-- 사용자 정의 스크립트 -->
+    <script src="../assets/js/main.js"></script>
+    <script src="../assets/js/performances.js"></script>
+</body>
+</html>

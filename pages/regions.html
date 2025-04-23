@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지역별 정보 - 나라투어</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- 지도 API -->
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=KAKAO_MAP_API_KEY&libraries=services"></script>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container">
+                <a class="navbar-brand" href="../index.html">
+                    <img src="../assets/images/naraicon.jpg" alt="나라투어 로고" width="30" height="30" class="d-inline-block align-text-top">
+                    나라투어
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="../index.html">홈</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="performances.html">공연 정보</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="routes.html">여행 경로</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="regions.html">지역별 정보</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="page-header bg-light py-5">
+            <div class="container">
+                <h1>지역별 여행 정보</h1>
+                <p class="lead">지도에서 원하는 지역을 선택하여 다양한 여행 정보를 확인하세요.</p>
+            </div>
+        </section>
+
+        <section class="map-section py-4">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                지역 선택
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group" id="region-list">
+                                    <a href="#" class="list-group-item list-group-item-action active" data-region="all">전체 지역</a>
+                                    <a href="#" class="list-group-item list-group-item-action" data-region="서울">서울</a>
+                                    <a href="#" class="list-group-item list-group-item-action" data-region="경기도">경기도</a>
+                                    <a href="#" class="list-group-item list-group-item-action" data-region="강원도">강원도</a>
+                                    <a href="#" class="list-group-item list-group-item-action" data-region="충청북도">충청북도</a>
+                                    <a href="#" class="list-group-item list-group-item-action" data-region="충청남도">충청남도</a>
+                                    <a href="#" class="list-group-item list-group-item-action" data-region="전라북도">전라북도</a>
+                                    <a href="#" class="list-group-item list-group-item-action" data-region="전라남도">전라남도</a>
+                                    <a href="#" class="list-group-item list-group-item-action" data-region="경상북도">경상북도</a>
+                                    <a href="#" class="list-group-item list-group-item-action" data-region="경상남도">경상남도</a>
+                                    <a href="#" class="list-group-item list-group-item-action" data-region="제주도">제주도</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                카테고리
+                            </div>
+                            <div class="card-body">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="관광" id="cat-tourism" checked>
+                                    <label class="form-check-label" for="cat-tourism">
+                                        관광명소
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="맛집" id="cat-food" checked>
+                                    <label class="form-check-label" for="cat-food">
+                                        맛집
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="숙박" id="cat-accommodation" checked>
+                                    <label class="form-check-label" for="cat-accommodation">
+                                        숙박
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="쇼핑" id="cat-shopping" checked>
+                                    <label class="form-check-label" for="cat-shopping">
+                                        쇼핑
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="문화시설" id="cat-culture" checked>
+                                    <label class="form-check-label" for="cat-culture">
+                                        문화시설
+                                    </label>
+                                </div>
+                                <button class="btn btn-primary btn-sm mt-3 w-100" id="apply-filter">필터 적용</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-9">
+                        <div class="card mb-4">
+                            <div class="card-body p-0">
+                                <div id="map" style="width:100%; height:500px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="region-details py-4">
+            <div class="container">
+                <h2 id="region-title">전체 지역 정보</h2>
+                <p id="region-description" class="lead">대한민국의 주요 여행지 정보를 확인하세요.</p>
+                
+                <div class="row mt-4" id="region-places-container">
+                    <!-- 여기에 지역 정보가 동적으로 추가됩니다 -->
+                    <div class="col-12 text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 더보기 버튼 -->
+                <div class="text-center mt-4">
+                    <button class="btn btn-primary" id="load-more">더 보기</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-dark text-white py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>나라투어</h5>
+                    <p>대한민국의 아름다운 여행지와 경험을 발견하세요.</p>
+                </div>
+                <div class="col-md-3">
+                    <h5>바로가기</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="../index.html" class="text-white">홈</a></li>
+                        <li><a href="performances.html" class="text-white">공연 정보</a></li>
+                        <li><a href="routes.html" class="text-white">여행 경로</a></li>
+                        <li><a href="regions.html" class="text-white">지역별 정보</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5>연락처</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-envelope me-2"></i> info@naratour.com</li>
+                        <li><i class="fas fa-phone me-2"></i> 02-123-4567</li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <p>&copy; 2025 나라투어. 모든 권리 보유.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- 사용자 정의 스크립트 -->
+    <script src="../assets/js/main.js"></script>
+    <script src="../assets/js/regions.js"></script>
+</body>
+</html>
