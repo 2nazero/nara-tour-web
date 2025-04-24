@@ -5,12 +5,12 @@ document.addEventListener('DOMContentLoaded', function() {
     let markers = [];
     let touristData = [];
     let currentRegion = 'all';
-    let currentCategories = ['1', '2', '3', '4', '6']; // 기본 카테고리(전체)
+    let currentCategories = ['1', '2', '3', '4', '5', '6', '11', '24']; // 기본 카테고리
     let minSatisfaction = 3; // 기본 만족도 필터 (3점 이상)
     let visibleItems = 12; // 처음에 보여줄 아이템 수
     let categoryChart = null;
     let satisfactionChart = null;
-    
+        
     // 데이터 로드 및 초기화
     initializeMap();
     loadTouristData();
@@ -358,27 +358,71 @@ document.addEventListener('DOMContentLoaded', function() {
                 switch(place.VISIT_AREA_TYPE_CD) {
                     case 1:
                         categoryIcon = 'fas fa-mountain';
-                        category = '관광명소';
+                        category = '자연 관광지';
                         break;
                     case 2:
-                        categoryIcon = 'fas fa-hotel';
-                        category = '숙박';
+                        categoryIcon = 'fas fa-landmark';
+                        category = '문화/역사/종교시설';
                         break;
                     case 3:
-                        categoryIcon = 'fas fa-shopping-bag';
-                        category = '쇼핑';
-                        break;
-                    case 4:
-                        categoryIcon = 'fas fa-utensils';
-                        category = '맛집';
-                        break;
-                    case 5:
-                        categoryIcon = 'fas fa-bus';
-                        category = '교통';
-                        break;
-                    case 6:
                         categoryIcon = 'fas fa-theater-masks';
                         category = '문화시설';
+                        break;
+                    case 4:
+                        categoryIcon = 'fas fa-store';
+                        category = '상업지구';
+                        break;
+                    case 5:
+                        categoryIcon = 'fas fa-running';
+                        category = '레저/스포츠';
+                        break;
+                    case 6:
+                        categoryIcon = 'fas fa-ticket-alt';
+                        category = '테마시설';
+                        break;
+                    case 7:
+                        categoryIcon = 'fas fa-hiking';
+                        category = '산책로/둘레길';
+                        break;
+                    case 8:
+                        categoryIcon = 'fas fa-calendar-alt';
+                        category = '축제/행사';
+                        break;
+                    case 9:
+                        categoryIcon = 'fas fa-bus';
+                        category = '교통시설';
+                        break;
+                    case 10:
+                        categoryIcon = 'fas fa-shopping-bag';
+                        category = '상점';
+                        break;
+                    case 11:
+                        categoryIcon = 'fas fa-utensils';
+                        category = '식당/카페';
+                        break;
+                    case 12:
+                        categoryIcon = 'fas fa-building';
+                        category = '공공시설';
+                        break;
+                    case 13:
+                        categoryIcon = 'fas fa-film';
+                        category = '엔터테인먼트';
+                        break;
+                    case 21:
+                        categoryIcon = 'fas fa-home';
+                        category = '집(본인)';
+                        break;
+                    case 22:
+                        categoryIcon = 'fas fa-house-user';
+                        category = '집(가족/친척)';
+                        break;
+                    case 23:
+                        categoryIcon = 'fas fa-briefcase';
+                        category = '회사';
+                        break;
+                    case 24:
+                        categoryIcon = 'fas fa-bed';
+                        category = '숙소';
                         break;
                 }
                 
@@ -505,14 +549,30 @@ if (!categoryCtx) {
     return;
 }
 
+// 카테고리별 분포 차트
 categoryChart = new Chart(categoryCtx, {
     type: 'doughnut',
     data: {
-        labels: ['관광명소', '숙박', '쇼핑', '맛집', '교통', '문화시설', '기타'],
+        labels: [
+            '자연 관광지', 
+            '문화/역사/종교시설', 
+            '문화시설', 
+            '상업지구', 
+            '레저/스포츠', 
+            '테마시설',
+            '산책로/둘레길',
+            '축제/행사',
+            '교통시설',
+            '상점',
+            '식당/카페',
+            '기타'
+        ],
         datasets: [{
-            data: [0, 0, 0, 0, 0, 0, 0],
+            data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             backgroundColor: [
-                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'
+                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', 
+                '#FF9F40', '#C9CBCF', '#FF8A80', '#8BC34A', '#9C27B0',
+                '#FFEB3B', '#607D8B'
             ]
         }]
     },
@@ -521,6 +581,12 @@ categoryChart = new Chart(categoryCtx, {
         plugins: {
             legend: {
                 position: 'right',
+                labels: {
+                    boxWidth: 12,
+                    font: {
+                        size: 10
+                    }
+                }
             },
             title: {
                 display: true,
@@ -597,14 +663,20 @@ const filteredPlaces = touristData.filter(place => {
 });
 
 // 카테고리별 분포 데이터
-const categoryData = [0, 0, 0, 0, 0, 0, 0]; // [관광명소, 숙박, 쇼핑, 맛집, 교통, 문화시설, 기타]
+const categoryData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // 카테고리별 개수
 
 filteredPlaces.forEach(place => {
     const type = place.VISIT_AREA_TYPE_CD;
-    if (type >= 1 && type <= 6) {
-        categoryData[type - 1]++;
+    if (type >= 1 && type <= 8) {
+        categoryData[type - 1]++; // 1-8 카테고리
+    } else if (type === 9) {
+        categoryData[8]++; // 교통시설
+    } else if (type === 10) {
+        categoryData[9]++; // 상점
+    } else if (type === 11) {
+        categoryData[10]++; // 식당/카페
     } else {
-        categoryData[6]++; // 기타
+        categoryData[11]++; // 기타
     }
 });
 
