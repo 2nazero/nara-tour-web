@@ -157,7 +157,7 @@ footer a:hover {
     }
 
     .hero-slider .carousel-item {
-        height: 500px; /* 슬라이드 높이 조정 */
+        height: 380px; /* 슬라이드 높이 조정 */
     }
 
     .hero-slider .carousel-item img {
@@ -168,16 +168,23 @@ footer a:hover {
 
     .hero-slider .carousel-caption {
         background-color: rgba(0, 0, 0, 0.5);
-        padding: 2rem;
+        padding: 1.5rem; /* 패딩 축소 */
         border-radius: 10px;
-        bottom: 5rem;
+        bottom: 4rem;
         text-align: left;
+        max-width: 600px; /* 텍스트 영역 너비 제한 */
+        margin: 0 auto;
     }
 
     .hero-slider h1 {
-        font-size: 2.5rem;
+        font-size: 2.2rem; /* 글꼴 크기 약간 축소 */
         font-weight: 700;
-    }       
+        margin-bottom: 0.5rem; /* 마진 축소 */
+    }
+    
+    .hero-slider .lead {
+        margin-bottom: 0.5rem; /* 마진 축소 */
+    }
     
     #region-tabs .nav-item {
         width: 100%;
