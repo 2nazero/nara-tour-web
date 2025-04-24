@@ -12,32 +12,37 @@ let cachedTouristData = null;
 
 // JSONL 파일 로드 및 파싱 함수
 async function loadJSONLFile(filePath) {
-    if (cachedTouristData) {
-        return cachedTouristData;
-    }
-    
     try {
-        const response = await fetch(filePath);
-        const text = await response.text();
+        // 절대 경로 사용
+        const fullPath = `/naratour/data/ml_filtered_master_tourist_only.jsonl`;
+        console.log('데이터 로드 시도:', fullPath);
         
-        // JSONL은 줄바꿈으로 구분된 JSON 객체들이므로 각 줄을 파싱
-        cachedTouristData = text.trim().split('\n')
+        const response = await fetch(fullPath);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP 오류! 상태: ${response.status}`);
+        }
+        
+        const text = await response.text();
+        console.log('로드된 데이터 미리보기:', text.substring(0, 100));
+        
+        // JSONL 파싱
+        return text.trim().split('\n')
             .map(line => {
                 try {
                     return JSON.parse(line);
                 } catch (e) {
-                    console.error('파싱 오류:', e, line);
+                    console.error('파싱 오류:', e, line.substring(0, 50) + '...');
                     return null;
                 }
             })
-            .filter(item => item !== null); // 파싱 실패한 항목 제거
-        
-        return cachedTouristData;
+            .filter(item => item !== null);
     } catch (error) {
         console.error('데이터 로드 중 오류 발생:', error);
         return [];
     }
 }
+
 
 // 인기 여행지 데이터 로드 및 표시
 async function loadPopularDestinations() {
