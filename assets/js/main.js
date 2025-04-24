@@ -2,16 +2,26 @@
 document.addEventListener('DOMContentLoaded', function() {
     // 인기 여행지 데이터 로드
     loadPopularDestinations();
+    
+    // 지역별 인기 여행지 탭 생성 및 데이터 로드
+    initializeRegionTabs();
 });
+
+// 전역 변수로 데이터 캐싱
+let cachedTouristData = null;
 
 // JSONL 파일 로드 및 파싱 함수
 async function loadJSONLFile(filePath) {
+    if (cachedTouristData) {
+        return cachedTouristData;
+    }
+    
     try {
         const response = await fetch(filePath);
         const text = await response.text();
         
         // JSONL은 줄바꿈으로 구분된 JSON 객체들이므로 각 줄을 파싱
-        return text.trim().split('\n')
+        cachedTouristData = text.trim().split('\n')
             .map(line => {
                 try {
                     return JSON.parse(line);
@@ -21,6 +31,8 @@ async function loadJSONLFile(filePath) {
                 }
             })
             .filter(item => item !== null); // 파싱 실패한 항목 제거
+        
+        return cachedTouristData;
     } catch (error) {
         console.error('데이터 로드 중 오류 발생:', error);
         return [];
@@ -41,30 +53,69 @@ async function loadPopularDestinations() {
             return;
         }
         
-        // 인기 여행지 6개 선택 (실제로는 평점이나 방문자 수 등으로 정렬 가능)
-        // 여기서는 임의로 6개 선택
+        // 만족도(DGSTFN) 기준으로 정렬하여 상위 6개 선택
         const popularDestinations = touristData
-            .sort(() => 0.5 - Math.random()) // 랜덤 정렬
-            .slice(0, 6); // 6개 선택
+            .filter(item => item.DGSTFN && item.DGSTFN > 0) // 만족도가 있는 항목만
+            .sort((a, b) => b.DGSTFN - a.DGSTFN) // 높은 순으로 정렬
+            .slice(0, 6); // 상위 6개 선택
         
         // HTML 생성
         let html = '';
         popularDestinations.forEach(destination => {
-            // 데이터 구조에 따라 필드명 조정 필요
-            const name = destination.name || destination.place_name || '이름 없음';
-            const address = destination.address || destination.addr || '';
-            const category = destination.category || destination.cat3_name || '기타';
-            const imageUrl = destination.image_url || 'assets/images/icon_blank.jpg';
+            const name = destination.VISIT_AREA_NM || '이름 없음';
+            const address = destination.ROAD_NM_ADDR || destination.LOTNO_ADDR || '';
+            const region = destination.SIDO_NM || '';
+            const satisfaction = destination.DGSTFN || '0';
+            
+            // 관광지 유형 코드에 따른 카테고리 설정
+            let category = '기타';
+            let categoryIcon = 'fas fa-map-marker-alt';
+            
+            switch(destination.VISIT_AREA_TYPE_CD) {
+                case 1:
+                    category = '관광명소';
+                    categoryIcon = 'fas fa-mountain';
+                    break;
+                case 2:
+                    category = '숙박';
+                    categoryIcon = 'fas fa-hotel';
+                    break;
+                case 3:
+                    category = '쇼핑';
+                    categoryIcon = 'fas fa-shopping-bag';
+                    break;
+                case 4:
+                    category = '맛집';
+                    categoryIcon = 'fas fa-utensils';
+                    break;
+                case 5:
+                    category = '교통';
+                    categoryIcon = 'fas fa-bus';
+                    break;
+                case 6:
+                    category = '문화시설';
+                    categoryIcon = 'fas fa-theater-masks';
+                    break;
+            }
             
             html += `
             <div class="col-md-4 mb-4">
                 <div class="card destination-card">
-                    <img src="${imageUrl}" class="card-img-top" alt="${name}" 
-                         onerror="this.src='assets/images/icon_blank.jpg'">
+                    <div class="card-img-top text-center py-4 bg-light">
+                        <i class="${categoryIcon} fa-3x text-primary"></i>
+                    </div>
                     <div class="card-body">
                         <h5 class="card-title">${name}</h5>
                         <p class="card-text text-muted small">${address}</p>
-                        <span class="badge bg-primary">${category}</span>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-primary">${category}</span>
+                            <span class="badge bg-success">
+                                <i class="fas fa-star me-1"></i>${satisfaction}/5
+                            </span>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-secondary">${region}</span>
+                        </div>
                     </div>
                 </div>
             </div>`;
@@ -75,6 +126,157 @@ async function loadPopularDestinations() {
         console.error('인기 여행지 로드 중 오류 발생:', error);
         container.innerHTML = '<div class="col-12 text-center"><p>데이터를 불러오는 중 오류가 발생했습니다.</p></div>';
     }
+}
+
+// 지역별 탭 초기화 및 데이터 로드
+async function initializeRegionTabs() {
+    try {
+        // JSONL 파일 로드
+        const touristData = await loadJSONLFile('data/ml_filtered_master_tourist_only.jsonl');
+        
+        if (!touristData || touristData.length === 0) {
+            return;
+        }
+        
+        // 고유한 지역(SIDO_NM) 목록 추출
+        const regions = [...new Set(touristData
+            .filter(item => item.SIDO_NM) // 지역 정보가 있는 항목만
+            .map(item => item.SIDO_NM))]
+            .sort(); // 알파벳 순 정렬
+        
+        // 탭 메뉴 생성
+        const tabsContainer = document.getElementById('region-tabs');
+        let tabsHtml = `
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="all-tab" data-bs-toggle="pill" data-bs-target="#all" type="button" role="tab" aria-controls="all" aria-selected="true">전체</button>
+            </li>`;
+        
+        regions.forEach(region => {
+            const regionId = region.replace(/\s+/g, '-').toLowerCase();
+            tabsHtml += `
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="${regionId}-tab" data-bs-toggle="pill" data-bs-target="#${regionId}" type="button" role="tab" aria-controls="${regionId}" aria-selected="false">${region}</button>
+            </li>`;
+        });
+        
+        tabsContainer.innerHTML = tabsHtml;
+        
+        // 탭 컨텐츠 생성
+        const tabContentContainer = document.getElementById('region-tab-content');
+        let tabContentHtml = `
+            <div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="all-tab">
+                <div class="row">`;
+        
+        // 전체 지역의 인기 관광지 (만족도 순 상위 3개)
+        const allPopular = touristData
+            .filter(item => item.DGSTFN && item.DGSTFN > 0)
+            .sort((a, b) => b.DGSTFN - a.DGSTFN)
+            .slice(0, 3);
+        
+        allPopular.forEach(destination => {
+            tabContentHtml += createDestinationCard(destination);
+        });
+        
+        tabContentHtml += `
+                </div>
+            </div>`;
+        
+        // 각 지역별 탭 컨텐츠 생성
+        regions.forEach(region => {
+            const regionId = region.replace(/\s+/g, '-').toLowerCase();
+            
+            // 해당 지역의 관광지 필터링
+            const regionDestinations = touristData
+                .filter(item => item.SIDO_NM === region && item.DGSTFN)
+                .sort((a, b) => b.DGSTFN - a.DGSTFN)
+                .slice(0, 3); // 상위 3개
+            
+            tabContentHtml += `
+            <div class="tab-pane fade" id="${regionId}" role="tabpanel" aria-labelledby="${regionId}-tab">
+                <div class="row">`;
+            
+            if (regionDestinations.length > 0) {
+                regionDestinations.forEach(destination => {
+                    tabContentHtml += createDestinationCard(destination);
+                });
+            } else {
+                tabContentHtml += `
+                <div class="col-12 text-center py-4">
+                    <p>해당 지역의 데이터가 없습니다.</p>
+                </div>`;
+            }
+            
+            tabContentHtml += `
+                </div>
+            </div>`;
+        });
+        
+        tabContentContainer.innerHTML = tabContentHtml;
+        
+    } catch (error) {
+        console.error('지역별 데이터 로드 중 오류 발생:', error);
+    }
+}
+
+// 관광지 카드 HTML 생성 함수
+function createDestinationCard(destination) {
+    const name = destination.VISIT_AREA_NM || '이름 없음';
+    const address = destination.ROAD_NM_ADDR || destination.LOTNO_ADDR || '';
+    const region = destination.SIDO_NM || '';
+    const satisfaction = destination.DGSTFN || '0';
+    
+    // 관광지 유형 코드에 따른 카테고리 설정
+    let category = '기타';
+    let categoryIcon = 'fas fa-map-marker-alt';
+    
+    switch(destination.VISIT_AREA_TYPE_CD) {
+        case 1:
+            category = '관광명소';
+            categoryIcon = 'fas fa-mountain';
+            break;
+        case 2:
+            category = '숙박';
+            categoryIcon = 'fas fa-hotel';
+            break;
+        case 3:
+            category = '쇼핑';
+            categoryIcon = 'fas fa-shopping-bag';
+            break;
+        case 4:
+            category = '맛집';
+            categoryIcon = 'fas fa-utensils';
+            break;
+        case 5:
+            category = '교통';
+            categoryIcon = 'fas fa-bus';
+            break;
+        case 6:
+            category = '문화시설';
+            categoryIcon = 'fas fa-theater-masks';
+            break;
+    }
+    
+    return `
+    <div class="col-md-4 mb-4">
+        <div class="card destination-card">
+            <div class="card-img-top text-center py-4 bg-light">
+                <i class="${categoryIcon} fa-3x text-primary"></i>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">${name}</h5>
+                <p class="card-text text-muted small">${address}</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge bg-primary">${category}</span>
+                    <span class="badge bg-success">
+                        <i class="fas fa-star me-1"></i>${satisfaction}/5
+                    </span>
+                </div>
+                <div class="mt-2">
+                    <span class="badge bg-secondary">${region}</span>
+                </div>
+            </div>
+        </div>
+    </div>`;
 }
 
 // 지역별 여행지 필터링 함수 (regions.html 페이지에서 사용)

@@ -73,6 +73,73 @@ footer a:hover {
     font-size: 0.8rem;
 }
 
+/* 지역 탭 스타일 */
+#region-tabs {
+    flex-wrap: wrap;
+}
+
+#region-tabs .nav-link {
+    margin: 0.25rem;
+    border-radius: 20px;
+}
+
+/* 별점 표시 */
+.rating {
+    color: #ffc107;
+}
+
+.rating i {
+    margin-right: 3px;
+}
+
+/* 카테고리 아이콘 */
+.category-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+/* 지도 컨테이너 */
+.map-container {
+    height: 500px;
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+/* 필터 패널 */
+.filter-panel {
+    background-color: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+/* 일정표 스타일 */
+.itinerary-table th {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* 검색 폼 스타일 */
+.search-form {
+    background-color: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    margin-bottom: 2rem;
+}
+
+/* 페이지 헤더 스타일 */
+.page-header {
+    padding: 4rem 0;
+    background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+    color: white;
+    margin-bottom: 2rem;
+}
+
+.page-header h1 {
+    font-weight: 700;
+}
+
 /* 반응형 조정 */
 @media (max-width: 768px) {
     .hero-section {
@@ -82,5 +149,14 @@ footer a:hover {
     
     .hero-section img {
         margin-top: 2rem;
+    }
+    
+    #region-tabs .nav-item {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    #region-tabs .nav-link {
+        text-align: center;
     }
 }
