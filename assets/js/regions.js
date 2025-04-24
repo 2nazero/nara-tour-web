@@ -64,23 +64,40 @@ document.addEventListener('DOMContentLoaded', function() {
         displayPlaces();
     });
     
-    // 카카오 지도 초기화
+    // 구글 지도 초기화
     function initializeMap() {
         try {
-            if (!window.kakao || !window.kakao.maps) {
-                console.error('카카오맵 API가 로드되지 않았습니다.');
+            const container = document.getElementById('map');
+            if (!container) {
+                console.error('지도 컨테이너를 찾을 수 없습니다');
                 return;
             }
             
-            const container = document.getElementById('map');
-            const options = {
-                center: new kakao.maps.LatLng(36.2, 127.9), // 대한민국 중심 좌표
-                level: 13 // 확대 레벨
-            };
+            // 구글 맵 객체 생성
+            map = new google.maps.Map(container, {
+                center: { lat: 36.2, lng: 127.9 }, // 한국 중심 좌표
+                zoom: 7, // 확대 레벨
+                mapTypeControl: true,
+                streetViewControl: false,
+                fullscreenControl: true
+            });
             
-            map = new kakao.maps.Map(container, options);
+            console.log('구글 지도 초기화 완료');
+            
         } catch (error) {
             console.error('지도 초기화 중 오류:', error);
+            
+            // 오류 발생 시 대체 메시지 표시
+            const container = document.getElementById('map');
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-map-marked-alt fa-5x text-muted mb-3"></i>
+                        <h4>지도를 불러올 수 없습니다</h4>
+                        <p>구글 지도 API 키가 필요합니다.</p>
+                    </div>
+                `;
+            }
         }
     }
     
@@ -143,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // 마커 생성 및 지도에 표시
+    // 마커 생성 및 지도에 표시 (구글 맵 버전)
     function createMarkers() {
         try {
             // 기존 마커 제거
@@ -159,21 +176,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // 새 마커 생성
+            // 새 마커 생성 (구글 맵 마커)
             touristData.forEach((place, index) => {
                 // 좌표 정보가 있는 경우에만 마커 생성
                 if (place.X_COORD && place.Y_COORD) {
                     try {
-                        const latlng = new kakao.maps.LatLng(place.Y_COORD, place.X_COORD);
+                        // 구글 맵용 좌표 객체
+                        const position = { lat: place.Y_COORD, lng: place.X_COORD };
                         
-                        // 마커 생성
-                        const marker = new kakao.maps.Marker({
-                            position: latlng,
-                            map: null // 처음에는 지도에 표시하지 않음
+                        // 구글 맵 마커 생성
+                        const marker = new google.maps.Marker({
+                            position: position,
+                            map: null, // 처음에는 지도에 표시하지 않음
+                            title: place.VISIT_AREA_NM || '이름 없음'
                         });
                         
                         // 마커에 클릭 이벤트 추가
-                        kakao.maps.event.addListener(marker, 'click', function() {
+                        marker.addListener('click', function() {
                             showPlaceInfo(place);
                         });
                         
@@ -246,7 +265,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 case 6: categoryName = '문화시설'; break;
             }
             
-            // 인포윈도우 내용 생성
+            // 구글 맵 인포윈도우로 표시하는 대신 alert로 표시
             const content = `
             ${name}
             주소: ${address}
@@ -256,6 +275,27 @@ document.addEventListener('DOMContentLoaded', function() {
             만족도: ${satisfaction}/5`;
             
             alert(content);
+            
+            // 구글 맵 인포윈도우를 사용하려면 아래 코드 활성화:
+            /*
+            const infowindow = new google.maps.InfoWindow({
+                content: `
+                <div style="padding:10px;width:300px;">
+                    <h5 style="margin-top:0;margin-bottom:10px;">${name}</h5>
+                    <p style="margin:0;font-size:0.9em;color:#666;">${address}</p>
+                    <p style="margin:8px 0;">유형: ${categoryName}</p>
+                    <p style="margin:8px 0;">방문 날짜: ${visitDate}</p>
+                    <p style="margin:8px 0;">체류 시간: ${stayTime}</p>
+                    <p style="margin:8px 0;">만족도: ${satisfaction}/5</p>
+                </div>`
+            });
+            
+            // 마커 찾기
+            const markerObj = markers.find(m => m.place.VISIT_AREA_ID === place.VISIT_AREA_ID);
+            if (markerObj && markerObj.marker) {
+                infowindow.open(map, markerObj.marker);
+            }
+            */
         } catch (error) {
             console.error('장소 정보 표시 중 오류:', error);
         }

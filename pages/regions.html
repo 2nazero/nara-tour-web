@@ -11,48 +11,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
-    
-    <!-- 카카오맵 API - 실제 배포 시 API 키 사용 -->
-    <script>
-      // 지도 API가 없는 경우 임시 대체 객체 생성
-      window.kakao = {
-        maps: {
-          LatLng: function(lat, lng) {
-            this.lat = lat;
-            this.lng = lng;
-            return this;
-          },
-          Map: function() {
-            return {
-              setCenter: function() {},
-              setLevel: function() {},
-              setBounds: function() {}
-            };
-          },
-          Marker: function() {
-            return {
-              setMap: function() {},
-              setPosition: function() {}
-            };
-          },
-          event: {
-            addListener: function() {}
-          },
-          LatLngBounds: function() {
-            return {
-              extend: function() {}
-            };
-          },
-          Polyline: function() {
-            return {
-              setMap: function() {}
-            };
-          }
-        }
-      };
-    </script>
-    <!-- 실제 카카오맵 API 키 사용 시 아래 코드 활성화 -->
-    <!-- <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=실제API키&libraries=services"></script> -->
+    <!-- 구글 지도 API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_API_KEY"></script>
 </head>
 <body>
     <header>

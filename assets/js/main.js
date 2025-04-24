@@ -1,22 +1,31 @@
-// main.js 파일에서
+// main.js 파일 수정
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM이 로드되었습니다.');
     
-    // 요소 존재 여부 확인
-    const container = document.getElementById('popular-destinations-container');
-    console.log('컨테이너 요소 찾음:', container);
+    // 현재 페이지 파악
+    const currentPath = window.location.pathname;
+    console.log('현재 페이지 경로:', currentPath);
     
-    if (container) {
-        // 인기 여행지 데이터 로드
-        loadPopularDestinations();
-    } else {
-        console.error('popular-destinations-container 요소를 찾을 수 없습니다. 현재 페이지에 해당 요소가 있는지 확인하세요.');
-    }
-    
-    // 지역별 인기 여행지 탭 생성 및 데이터 로드
-    const tabsContainer = document.getElementById('region-tabs');
-    if (tabsContainer) {
-        initializeRegionTabs();
+    // 메인 페이지에서만 실행되는 코드
+    if (currentPath.endsWith('index.html') || currentPath.endsWith('/naratour/') || currentPath.endsWith('/naratour')) {
+        console.log('메인 페이지 코드 실행 중...');
+        
+        // 요소 존재 여부 확인
+        const container = document.getElementById('popular-destinations-container');
+        console.log('컨테이너 요소 찾음:', container);
+        
+        if (container) {
+            // 인기 여행지 데이터 로드
+            loadPopularDestinations();
+        } else {
+            console.error('popular-destinations-container 요소를 찾을 수 없습니다. 현재 페이지에 해당 요소가 있는지 확인하세요.');
+        }
+        
+        // 지역별 인기 여행지 탭 생성 및 데이터 로드
+        const tabsContainer = document.getElementById('region-tabs');
+        if (tabsContainer) {
+            initializeRegionTabs();
+        }
     }
 });
 // 전역 변수로 데이터 캐싱
