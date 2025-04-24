@@ -482,13 +482,13 @@ if (currentRegion !== 'all') {
     
     if (regionCoords[currentRegion]) {
         const coords = regionCoords[currentRegion];
-        map.setCenter(new kakao.maps.LatLng(coords.lat, coords.lng));
-        map.setLevel(coords.level);
+        map.setCenter({ lat: coords.lat, lng: coords.lng });
+        map.setZoom(coords.zoom);
     }
 } else {
     // 전체 지역 선택 시 한국 전체가 보이도록 설정
-    map.setCenter(new kakao.maps.LatLng(36.2, 127.9));
-    map.setLevel(13);
+    map.setCenter({ lat: 36.2, lng: 127.9 });
+    map.setZoom(7);
 }
 } catch (error) {
 console.error('지역 정보 업데이트 중 오류:', error);
