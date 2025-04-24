@@ -1,12 +1,24 @@
-// 문서가 로드되면 실행
+// main.js 파일에서
 document.addEventListener('DOMContentLoaded', function() {
-    // 인기 여행지 데이터 로드
-    loadPopularDestinations();
+    console.log('DOM이 로드되었습니다.');
+    
+    // 요소 존재 여부 확인
+    const container = document.getElementById('popular-destinations-container');
+    console.log('컨테이너 요소 찾음:', container);
+    
+    if (container) {
+        // 인기 여행지 데이터 로드
+        loadPopularDestinations();
+    } else {
+        console.error('popular-destinations-container 요소를 찾을 수 없습니다. 현재 페이지에 해당 요소가 있는지 확인하세요.');
+    }
     
     // 지역별 인기 여행지 탭 생성 및 데이터 로드
-    initializeRegionTabs();
+    const tabsContainer = document.getElementById('region-tabs');
+    if (tabsContainer) {
+        initializeRegionTabs();
+    }
 });
-
 // 전역 변수로 데이터 캐싱
 let cachedTouristData = null;
 
