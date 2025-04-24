@@ -150,6 +150,34 @@ footer a:hover {
     .hero-section img {
         margin-top: 2rem;
     }
+
+        /* 히어로 슬라이더 스타일 */
+    .hero-slider {
+        margin-bottom: 2rem;
+    }
+
+    .hero-slider .carousel-item {
+        height: 500px; /* 슬라이드 높이 조정 */
+    }
+
+    .hero-slider .carousel-item img {
+        object-fit: cover;
+        height: 100%;
+        width: 100%;
+    }
+
+    .hero-slider .carousel-caption {
+        background-color: rgba(0, 0, 0, 0.5);
+        padding: 2rem;
+        border-radius: 10px;
+        bottom: 5rem;
+        text-align: left;
+    }
+
+    .hero-slider h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+    }       
     
     #region-tabs .nav-item {
         width: 100%;

@@ -15,8 +15,8 @@
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
             <div class="container">
                 <a class="navbar-brand" href="index.html">
-                    <img src="assets/images/naraicon.png" alt="나라투어 로고" width="30" height="30" class="d-inline-block align-text-top">
-                    나라투어
+                    <img src="assets/images/naraicon.png" alt="나라투어 로고" height="40" class="d-inline-block align-text-top">
+                    <span class="ms-2">니라투어</span>
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -42,48 +42,73 @@
     </header>
 
     <main>
-        <!-- 히어로 섹션 -->
-        <!-- 히어로 섹션 -->
-        <section class="hero-section">
-            <div class="container">
-                <div class="row align-items-center">
-                    <div class="col-lg-6">
-                        <h1>여행의 새로운 경험</h1>
-                        <p class="lead">나라투어와 함께 새로운 여행지를 발견하고, 최적의 경로를 계획하세요.</p>
-                        <div class="mt-4">
-                            <a href="pages/performances.html" class="btn btn-primary me-2">공연 정보 보기</a>
-                            <a href="pages/routes.html" class="btn btn-outline-secondary">여행 경로 계획</a>
+        <!-- 히어로 섹션 - 전체 너비 슬라이드 -->
+        <section class="hero-slider">
+            <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-indicators">
+                    <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active"></button>
+                    <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
+                    <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2"></button>
+                </div>
+                <div class="carousel-inner">
+                    <div class="carousel-item active">
+                        <img src="assets/images/slider/slide1.png" class="d-block w-100" alt="여행 이미지 1">
+                        <div class="carousel-caption">
+                            <div class="container">
+                                <h1>여행의 새로운 경험</h1>
+                                <p class="lead">지역별 맞춤 여행 정보를 확인하세요.</p>
+                                <div class="mt-4">
+                                    <a href="pages/performances.html" class="btn btn-primary me-2">공연 정보 보기</a>
+                                    <a href="pages/routes.html" class="btn btn-outline-light">여행 경로 계획</a>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-lg-6">
-                        <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
-                            <div class="carousel-indicators">
-                                <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active"></button>
-                                <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
-                                <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2"></button>
-                            </div>
-                            <div class="carousel-inner rounded">
-                                <div class="carousel-item active">
-                                    <img src="assets/images/background1.jpg" class="d-block w-100" alt="여행 이미지 1">
-                                </div>
-                                <div class="carousel-item">
-                                    <img src="assets/images/background2.jpg" class="d-block w-100" alt="여행 이미지 2">
-                                </div>
-                                <div class="carousel-item">
-                                    <img src="assets/images/background3.jpg" class="d-block w-100" alt="여행 이미지 3">
+                    <div class="carousel-item">
+                        <img src="assets/images/slider/slide2.png" class="d-block w-100" alt="여행 이미지 2">
+                        <div class="carousel-caption">
+                            <div class="container">
+                                <h1>공연과 축제 정보</h1>
+                                <p class="lead">전국의 다양한 공연과 축제 정보를 확인하세요.</p>
+                                <div class="mt-4">
+                                    <a href="pages/performances.html" class="btn btn-primary me-2">자세히 보기</a>
                                 </div>
                             </div>
-                            <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
-                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                <span class="visually-hidden">Previous</span>
-                            </button>
-                            <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
-                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                <span class="visually-hidden">Next</span>
-                            </button>
+                        </div>
+                    </div>
+                    <div class="carousel-item">
+                        <img src="assets/images/slider/slide3.png" class="d-block w-100" alt="여행 이미지 3">
+                        <div class="carousel-caption">
+                            <div class="container">
+                                <h1>맞춤형 여행 경로</h1>
+                                <p class="lead">나라투어와 함께 새로운 여행지를 발견하고, 최적의 경로를 계획하세요.</p>
+                                <div class="mt-4">
+                                    <a href="pages/routes.html" class="btn btn-primary me-2">경로 계획하기</a>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+                <div class="carousel-item">
+                    <img src="assets/images/slider/slide4.png" class="d-block w-100" alt="여행 이미지 4">
+                    <div class="carousel-caption">
+                        <div class="container">
+                            <h1>시고르</h1>
+                            <p class="lead">귀여운 강아지를 확인하세요.</p>
+                            <div class="mt-4">
+                                <a href="pages/performances.html" class="btn btn-primary me-2">자세히 보기</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
             </div>
         </section>
 
