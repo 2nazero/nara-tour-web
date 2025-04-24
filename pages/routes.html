@@ -4,21 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>여행 경로 - 나라투어</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="/naratour/assets/css/style.css">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- 지도 API -->
-    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=KAKAO_MAP_API_KEY&libraries=services,drawing"></script>
+    <!-- 구글 지도 API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_API_KEY"></script>
 </head>
 <body>
     <header>
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
             <div class="container">
-                <a class="navbar-brand" href="../index.html">
-                    <img src="../assets/images/naraicon.png" alt="나라투어 로고" width="30" height="30" class="d-inline-block align-text-top">
-                    나라투어
+                <a class="navbar-brand" href="/naratour/index.html">
+                    <img src="/naratour/assets/images/naraicon.png" alt="나라투어 로고" height="50" class="d-inline-block">
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -26,16 +25,16 @@
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item">
-                            <a class="nav-link" href="../index.html">홈</a>
+                            <a class="nav-link" href="/naratour/index.html">홈</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="performances.html">공연 정보</a>
+                            <a class="nav-link" href="/naratour/pages/performances.html">공연 정보</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="routes.html">여행 경로</a>
+                            <a class="nav-link active" aria-current="page" href="/naratour/pages/routes.html">여행 경로</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="regions.html">지역별 정보</a>
+                            <a class="nav-link" href="/naratour/pages/regions.html">지역별 정보</a>
                         </li>
                     </ul>
                 </div>
@@ -44,7 +43,7 @@
     </header>
 
     <main>
-        <section class="page-header bg-light py-5">
+        <section class="page-header">
             <div class="container">
                 <h1>여행 경로 계획</h1>
                 <p class="lead">원하는 여행지를 선택하여 최적의 경로를 계획하세요.</p>
@@ -65,7 +64,7 @@
                                         <label for="region-select" class="form-label">지역 선택</label>
                                         <select class="form-select" id="region-select">
                                             <option value="">지역 선택</option>
-                                            <option value="서울">서울</option>
+                                            <option value="서울특별시">서울</option>
                                             <option value="경기도">경기도</option>
                                             <option value="강원도">강원도</option>
                                             <option value="충청북도">충청북도</option>
@@ -92,27 +91,27 @@
                                     <div class="mb-3">
                                         <label class="form-label">선호 장소 유형</label>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" value="관광명소" id="prefer-tourism" checked>
-                                            <label class="form-check-label" for="prefer-tourism">
-                                                관광명소
-                                            </label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" value="자연" id="prefer-nature" checked>
+                                            <input class="form-check-input" type="checkbox" value="1" id="prefer-nature" checked>
                                             <label class="form-check-label" for="prefer-nature">
-                                                자연/풍경
+                                                자연 관광지
                                             </label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" value="문화" id="prefer-culture" checked>
+                                            <input class="form-check-input" type="checkbox" value="2" id="prefer-culture" checked>
                                             <label class="form-check-label" for="prefer-culture">
-                                                문화/역사
+                                                문화/역사/종교시설
                                             </label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" value="맛집" id="prefer-food" checked>
+                                            <input class="form-check-input" type="checkbox" value="3" id="prefer-cultural-facility" checked>
+                                            <label class="form-check-label" for="prefer-cultural-facility">
+                                                문화시설
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" value="11" id="prefer-food" checked>
                                             <label class="form-check-label" for="prefer-food">
-                                                맛집
+                                                식당/카페
                                             </label>
                                         </div>
                                     </div>
@@ -137,7 +136,7 @@
                     <div class="col-md-8">
                         <div class="card mb-4">
                             <div class="card-body p-0">
-                                <div id="route-map" style="width:100%; height:500px;"></div>
+                                <div id="route-map" class="map-container"></div>
                             </div>
                         </div>
                         <div class="card">
@@ -184,6 +183,57 @@
                 </div>
             </div>
         </section>
+        
+        <!-- 인기 여행 경로 섹션 -->
+        <section class="popular-routes py-4 bg-light">
+            <div class="container">
+                <h2 class="mb-4">인기 여행 경로</h2>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header">서울 역사 탐방 코스</div>
+                            <div class="card-body">
+                                <ol class="list-group list-group-numbered list-group-flush">
+                                    <li class="list-group-item">경복궁</li>
+                                    <li class="list-group-item">국립민속박물관</li>
+                                    <li class="list-group-item">인사동 거리</li>
+                                    <li class="list-group-item">북촌 한옥마을</li>
+                                </ol>
+                                <button class="btn btn-sm btn-outline-primary mt-3 load-route-btn">이 코스 불러오기</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header">제주 서부 자연 코스</div>
+                            <div class="card-body">
+                                <ol class="list-group list-group-numbered list-group-flush">
+                                    <li class="list-group-item">협재 해수욕장</li>
+                                    <li class="list-group-item">한림공원</li>
+                                    <li class="list-group-item">오설록 티 뮤지엄</li>
+                                    <li class="list-group-item">카페거리</li>
+                                </ol>
+                                <button class="btn btn-sm btn-outline-primary mt-3 load-route-btn">이 코스 불러오기</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header">부산 도심 코스</div>
+                            <div class="card-body">
+                                <ol class="list-group list-group-numbered list-group-flush">
+                                    <li class="list-group-item">해운대 해수욕장</li>
+                                    <li class="list-group-item">광안리 해변</li>
+                                    <li class="list-group-item">감천문화마을</li>
+                                    <li class="list-group-item">자갈치 시장</li>
+                                </ol>
+                                <button class="btn btn-sm btn-outline-primary mt-3 load-route-btn">이 코스 불러오기</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <footer class="bg-dark text-white py-4">
@@ -196,10 +246,10 @@
                 <div class="col-md-3">
                     <h5>바로가기</h5>
                     <ul class="list-unstyled">
-                        <li><a href="../index.html" class="text-white">홈</a></li>
-                        <li><a href="performances.html" class="text-white">공연 정보</a></li>
-                        <li><a href="routes.html" class="text-white">여행 경로</a></li>
-                        <li><a href="regions.html" class="text-white">지역별 정보</a></li>
+                        <li><a href="/naratour/index.html" class="text-white">홈</a></li>
+                        <li><a href="/naratour/pages/performances.html" class="text-white">공연 정보</a></li>
+                        <li><a href="/naratour/pages/routes.html" class="text-white">여행 경로</a></li>
+                        <li><a href="/naratour/pages/regions.html" class="text-white">지역별 정보</a></li>
                     </ul>
                 </div>
                 <div class="col-md-3">
@@ -220,7 +270,6 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <!-- 사용자 정의 스크립트 -->
-    <script src="../assets/js/main.js"></script>
-    <script src="../assets/js/routes.js"></script>
+    <script src="/naratour/assets/js/routes.js"></script>
 </body>
 </html>

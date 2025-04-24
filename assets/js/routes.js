@@ -2,10 +2,10 @@
 document.addEventListener('DOMContentLoaded', function() {
     // 전역 변수
     let map;
+    let markers = [];
     let touristData = [];
     let selectedPlaces = [];
     let routeLine;
-    let markers = [];
     
     // 지도 초기화
     initializeMap();
@@ -40,15 +40,50 @@ document.addEventListener('DOMContentLoaded', function() {
         shareItinerary();
     });
     
-    // 카카오 지도 초기화
+    // 인기 코스 불러오기 버튼 이벤트
+    document.querySelectorAll('.load-route-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const listItems = this.closest('.card-body').querySelectorAll('.list-group-item');
+            const places = Array.from(listItems).map(item => item.textContent);
+            loadPopularRoute(places);
+        });
+    });
+    
+    // 구글 지도 초기화
     function initializeMap() {
-        const container = document.getElementById('route-map');
-        const options = {
-            center: new kakao.maps.LatLng(36.2, 127.9), // 대한민국 중심 좌표
-            level: 13 // 확대 레벨
-        };
-        
-        map = new kakao.maps.Map(container, options);
+        try {
+            const container = document.getElementById('route-map');
+            if (!container) {
+                console.error('지도 컨테이너를 찾을 수 없습니다');
+                return;
+            }
+            
+            // 구글 맵 객체 생성
+            map = new google.maps.Map(container, {
+                center: { lat: 36.2, lng: 127.9 }, // 한국 중심 좌표
+                zoom: 7, // 확대 레벨
+                mapTypeControl: true,
+                streetViewControl: false,
+                fullscreenControl: true
+            });
+            
+            console.log('구글 지도 초기화 완료');
+            
+        } catch (error) {
+            console.error('지도 초기화 중 오류:', error);
+            
+            // 오류 발생 시 대체 메시지 표시
+            const container = document.getElementById('route-map');
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-map-marked-alt fa-5x text-muted mb-3"></i>
+                        <h4>지도를 불러올 수 없습니다</h4>
+                        <p>구글 지도 API 키가 필요합니다.</p>
+                    </div>
+                `;
+            }
+        }
     }
     
     // 여행지 데이터 로드
@@ -59,8 +94,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 touristData = window.cachedTouristData;
                 console.log('캐시된 데이터 사용');
             } else {
-                const response = await fetch('../data/ml_filtered_master_tourist_only.jsonl');
+                const fullPath = '/naratour/data/ml_filtered_master_tourist_only.jsonl';
+                console.log('데이터 로드 시도:', fullPath);
+                
+                const response = await fetch(fullPath);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP 오류! 상태: ${response.status}`);
+                }
+                
                 const text = await response.text();
+                console.log('로드된 데이터 미리보기:', text.substring(0, 100));
                 
                 // JSONL 파싱
                 touristData = text.trim().split('\n')
@@ -68,7 +112,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         try {
                             return JSON.parse(line);
                         } catch (e) {
-                            console.error('파싱 오류:', e);
+                            console.error('파싱 오류:', e, line.substring(0, 50) + '...');
                             return null;
                         }
                     })
@@ -76,27 +120,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 전역 캐시에 저장
                 window.cachedTouristData = touristData;
-                console.log('새 데이터 로드 완료');
+                console.log('새 데이터 로드 완료:', touristData.length, '개 항목');
             }
-            
-            // 여행 ID 목록 분석
-            analyzeTravel();
-            
         } catch (error) {
             console.error('데이터 로드 중 오류 발생:', error);
         }
-    }
-    
-    // 여행 분석 (여행 ID 기준으로 그룹화)
-    function analyzeTravel() {
-        // 여행 ID 목록 추출
-        const travelIds = touristData
-            .filter(item => item.TRAVEL_ID) // 여행 ID가 있는 항목만
-            .map(item => item.TRAVEL_ID);
-        
-        // 중복 제거
-        const uniqueTravelIds = [...new Set(travelIds)];
-        console.log(`고유 여행 ID 개수: ${uniqueTravelIds.length}`);
     }
     
     // 추천 장소 로드 및 표시
@@ -118,6 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         try {
+            // 데이터가 로드되지 않았으면 로드
             if (touristData.length === 0) {
                 await loadTouristData();
             }
@@ -129,39 +158,12 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 선호 장소 유형 필터링
             const preferredTypes = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
-                .map(checkbox => checkbox.value);
+                .map(checkbox => parseInt(checkbox.value));
             
             // 선호 유형과 관련된 여행지 필터링
-            let filteredPlaces = regionPlaces;
-            if (preferredTypes.length > 0) {
-                // 유형별 필터링 로직
-                filteredPlaces = regionPlaces.filter(place => {
-                    // 관광명소
-                    if (preferredTypes.includes('관광명소') && place.VISIT_AREA_TYPE_CD === 1) return true;
-                    
-                    // 자연/풍경
-                    if (preferredTypes.includes('자연') && 
-                        (place.VISIT_AREA_NM && 
-                         (place.VISIT_AREA_NM.includes('산') || 
-                          place.VISIT_AREA_NM.includes('공원') || 
-                          place.VISIT_AREA_NM.includes('바다') || 
-                          place.VISIT_AREA_NM.includes('강')))) return true;
-                    
-                    // 문화/역사
-                    if (preferredTypes.includes('문화') && 
-                        (place.VISIT_AREA_TYPE_CD === 6 || 
-                         (place.VISIT_AREA_NM && 
-                          (place.VISIT_AREA_NM.includes('박물관') || 
-                           place.VISIT_AREA_NM.includes('미술관') || 
-                           place.VISIT_AREA_NM.includes('궁') || 
-                           place.VISIT_AREA_NM.includes('역사'))))) return true;
-                    
-                    // 맛집
-                    if (preferredTypes.includes('맛집') && place.VISIT_AREA_TYPE_CD === 4) return true;
-                    
-                    return false;
-                });
-            }
+            let filteredPlaces = regionPlaces.filter(place => {
+                return preferredTypes.includes(place.VISIT_AREA_TYPE_CD);
+            });
             
             // 데이터가 없는 경우 메시지 표시
             if (filteredPlaces.length === 0) {
@@ -187,41 +189,70 @@ document.addEventListener('DOMContentLoaded', function() {
                 const address = place.ROAD_NM_ADDR || place.LOTNO_ADDR || '';
                 const satisfaction = place.DGSTFN || '-';
                 
+                // 관광지 유형에 따른 아이콘 및 카테고리 설정
+                let categoryIcon = 'fas fa-map-marker-alt';
                 let category = '기타';
-                let categoryIcon = 'fa-map-marker-alt';
                 
                 switch(place.VISIT_AREA_TYPE_CD) {
                     case 1:
-                        category = '관광명소';
-                        categoryIcon = 'fa-mountain';
+                        categoryIcon = 'fas fa-mountain';
+                        category = '자연 관광지';
                         break;
                     case 2:
-                        category = '숙박';
-                        categoryIcon = 'fa-hotel';
+                        categoryIcon = 'fas fa-landmark';
+                        category = '문화/역사/종교시설';
                         break;
                     case 3:
-                        category = '쇼핑';
-                        categoryIcon = 'fa-shopping-bag';
+                        categoryIcon = 'fas fa-theater-masks';
+                        category = '문화시설';
                         break;
                     case 4:
-                        category = '맛집';
-                        categoryIcon = 'fa-utensils';
+                        categoryIcon = 'fas fa-store';
+                        category = '상업지구';
                         break;
                     case 5:
-                        category = '교통';
-                        categoryIcon = 'fa-bus';
+                        categoryIcon = 'fas fa-running';
+                        category = '레저/스포츠';
                         break;
                     case 6:
-                        category = '문화시설';
-                        categoryIcon = 'fa-theater-masks';
+                        categoryIcon = 'fas fa-ticket-alt';
+                        category = '테마시설';
+                        break;
+                    case 7:
+                        categoryIcon = 'fas fa-hiking';
+                        category = '산책로/둘레길';
+                        break;
+                    case 8:
+                        categoryIcon = 'fas fa-calendar-alt';
+                        category = '축제/행사';
+                        break;
+                    case 9:
+                        categoryIcon = 'fas fa-bus';
+                        category = '교통시설';
+                        break;
+                    case 10:
+                        categoryIcon = 'fas fa-shopping-bag';
+                        category = '상점';
+                        break;
+                    case 11:
+                        categoryIcon = 'fas fa-utensils';
+                        category = '식당/카페';
+                        break;
+                    case 24:
+                        categoryIcon = 'fas fa-bed';
+                        category = '숙소';
+                        break;
+                    default:
+                        categoryIcon = 'fas fa-map-marker-alt';
+                        category = '기타';
                         break;
                 }
                 
                 html += `
                 <div class="col-md-4 mb-3">
                     <div class="card h-100">
-                        <div class="card-header bg-primary text-white">
-                            <i class="fas ${categoryIcon} me-2"></i>${category}
+                        <div class="card-header">
+                            <i class="${categoryIcon} me-2"></i>${category}
                         </div>
                         <div class="card-body">
                             <h6 class="card-title">${name}</h6>
@@ -319,104 +350,178 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 지도에 마커 추가
     function addMarkerToMap(place) {
-        // 좌표 정보가 있는 경우에만 마커 생성
-        if (place.X_COORD && place.Y_COORD) {
-            const latlng = new kakao.maps.LatLng(place.Y_COORD, place.X_COORD);
-            
-            // 마커 생성
-            const marker = new kakao.maps.Marker({
-                position: latlng,
-                map: map
-            });
-            
-            // 마커 정보 저장
-            markers.push({
-                marker: marker,
-                place: place
-            });
-            
-            // 마커에 클릭 이벤트 추가
-            kakao.maps.event.addListener(marker, 'click', function() {
-                showPlaceInfo(place);
-            });
+        try {
+            // 좌표 정보가 있는 경우에만 마커 생성
+            if (place.X_COORD && place.Y_COORD) {
+                // 구글 맵용 좌표 객체
+                const position = { lat: place.Y_COORD, lng: place.X_COORD };
+                
+                // 구글 맵 마커 생성
+                const marker = new google.maps.Marker({
+                    position: position,
+                    map: map,
+                    title: place.VISIT_AREA_NM || '이름 없음'
+                });
+                
+                // 마커에 클릭 이벤트 추가
+                marker.addListener('click', function() {
+                    showPlaceInfo(place);
+                });
+                
+                // 마커 정보 저장
+                markers.push({
+                    marker: marker,
+                    place: place
+                });
+            }
+        } catch (error) {
+            console.error('마커 추가 중 오류:', error);
         }
     }
     
     // 모든 마커 새로고침
     function refreshMarkers() {
-        // 기존 마커 및 경로선 제거
-        markers.forEach(item => {
-            item.marker.setMap(null);
-        });
-        markers = [];
-        
-        if (routeLine) {
-            routeLine.setMap(null);
-            routeLine = null;
+        try {
+            // 기존 마커 및 경로선 제거
+            markers.forEach(item => {
+                if (item.marker) {
+                    item.marker.setMap(null);
+                }
+            });
+            markers = [];
+            
+            if (routeLine) {
+                routeLine.setMap(null);
+                routeLine = null;
+            }
+            
+            // 새 마커 추가
+            selectedPlaces.forEach(place => {
+                addMarkerToMap(place);
+            });
+        } catch (error) {
+            console.error('마커 새로고침 중 오류:', error);
         }
-        
-        // 새 마커 추가
-        selectedPlaces.forEach(place => {
-            addMarkerToMap(place);
-        });
     }
     
-    // 장소 정보 표시
-    function showPlaceInfo(place) {
+// 장소 정보 표시
+function showPlaceInfo(place) {
+    try {
         const name = place.VISIT_AREA_NM || '이름 없음';
         const address = place.ROAD_NM_ADDR || place.LOTNO_ADDR || '주소 정보 없음';
         const satisfaction = place.DGSTFN || '-';
         const visitDate = formatDate(place.VISIT_START_YMD);
         const stayTime = place.RESIDENCE_TIME_MIN ? `${place.RESIDENCE_TIME_MIN}분` : '정보 없음';
         
-        // 인포윈도우 내용 생성
+        // 관광지 유형에 따른 카테고리 설정
+        let category = '기타';
+        switch(place.VISIT_AREA_TYPE_CD) {
+            case 1: category = '자연 관광지'; break;
+            case 2: category = '문화/역사/종교시설'; break;
+            case 3: category = '문화시설'; break;
+            case 4: category = '상업지구'; break;
+            case 5: category = '레저/스포츠'; break;
+            case 6: category = '테마시설'; break;
+            case 7: category = '산책로/둘레길'; break;
+            case 8: category = '축제/행사'; break;
+            case 9: category = '교통시설'; break;
+            case 10: category = '상점'; break;
+            case 11: category = '식당/카페'; break;
+            case 12: category = '공공시설'; break;
+            case 13: category = '엔터테인먼트'; break;
+            case 21: category = '집(본인)'; break;
+            case 22: category = '집(가족/친척)'; break;
+            case 23: category = '회사'; break;
+            case 24: category = '숙소'; break;
+            default: category = '기타'; break;
+        }
+        
+        // 간단한 알림창으로 정보 표시
         const content = `
         ${name}
         주소: ${address}
+        유형: ${category}
         방문 날짜: ${visitDate}
         체류 시간: ${stayTime}
         만족도: ${satisfaction}/5`;
         
         alert(content);
-    }
-    
-    // 경로 최적화
-    function optimizeRoute() {
-        // 경로선 생성을 위한 좌표 배열
-        const linePath = selectedPlaces.map(place => {
-            return new kakao.maps.LatLng(place.Y_COORD, place.X_COORD);
+        
+        // 구글 맵 인포윈도우 사용하려면 아래 코드 활성화
+        /*
+        const infowindow = new google.maps.InfoWindow({
+            content: `
+            <div style="padding:10px;width:300px;">
+                <h5 style="margin-top:0;margin-bottom:10px;">${name}</h5>
+                <p style="margin:0;font-size:0.9em;color:#666;">${address}</p>
+                <p style="margin:8px 0;">유형: ${category}</p>
+                <p style="margin:8px 0;">방문 날짜: ${visitDate}</p>
+                <p style="margin:8px 0;">체류 시간: ${stayTime}</p>
+                <p style="margin:8px 0;">만족도: ${satisfaction}/5</p>
+            </div>
+            `
         });
+        
+        // 해당 마커 찾기
+        const markerObj = markers.find(m => m.place.VISIT_AREA_ID === place.VISIT_AREA_ID);
+        if (markerObj && markerObj.marker) {
+            infowindow.open(map, markerObj.marker);
+        }
+        */
+    } catch (error) {
+        console.error('장소 정보 표시 중 오류:', error);
+    }
+}
+
+// 경로 최적화
+function optimizeRoute() {
+    try {
+        if (!map || selectedPlaces.length < 2) return;
         
         // 기존 경로선 제거
         if (routeLine) {
             routeLine.setMap(null);
         }
         
-        // 경로선 생성
-        routeLine = new kakao.maps.Polyline({
-            path: linePath,
-            strokeWeight: 5,
+        // 경로선 생성을 위한 좌표 배열
+        const path = selectedPlaces.map(place => {
+            return { lat: place.Y_COORD, lng: place.X_COORD };
+        });
+        
+        // 구글 맵 경로선 생성
+        routeLine = new google.maps.Polyline({
+            path: path,
+            geodesic: true,
             strokeColor: '#FF0000',
-            strokeOpacity: 0.7,
-            strokeStyle: 'solid'
+            strokeOpacity: 1.0,
+            strokeWeight: 2
         });
         
         // 지도에 경로선 표시
         routeLine.setMap(map);
         
         // 경로가 모두 보이도록 지도 범위 조정
-        const bounds = new kakao.maps.LatLngBounds();
-        linePath.forEach(point => {
+        const bounds = new google.maps.LatLngBounds();
+        path.forEach(point => {
             bounds.extend(point);
         });
-        map.setBounds(bounds);
+        map.fitBounds(bounds);
+        
+        // 순서 최적화는 단순화를 위해 현재 순서 그대로 사용
+        // 실제로는 TSP(Traveling Salesman Problem) 알고리즘 구현 필요
+    } catch (error) {
+        console.error('경로 최적화 중 오류:', error);
     }
-    
-    // 일정표 생성
-    function generateItinerary() {
+}
+
+// 일정표 생성
+function generateItinerary() {
+    try {
         const days = parseInt(document.getElementById('days').value);
         const table = document.getElementById('itinerary-table');
         const tbody = table.querySelector('tbody');
+        
+        if (!tbody || selectedPlaces.length === 0) return;
         
         // 일별 일정 계산
         const placesPerDay = Math.ceil(selectedPlaces.length / days);
@@ -438,65 +543,92 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 관광지 유형에 따른 카테고리 설정
                 let category = '기타';
                 switch(place.VISIT_AREA_TYPE_CD) {
-                    case 1: category = '관광명소'; break;
-                    case 2: category = '숙박'; break;
-                    case 3: category = '쇼핑'; break;
-                    case 4: category = '맛집'; break;
-                    case 5: category = '교통'; break;
-                    case 6: category = '문화시설'; break;
+                    case 1: category = '자연 관광지'; break;
+                    case 2: category = '문화/역사/종교시설'; break;
+                    case 3: category = '문화시설'; break;
+                    case 4: category = '상업지구'; break;
+                    case 5: category = '레저/스포츠'; break;
+                    case 6: category = '테마시설'; break;
+                    case 7: category = '산책로/둘레길'; break;
+                    case 8: category = '축제/행사'; break;
+                    case 9: category = '교통시설'; break;
+                    case 10: category = '상점'; break;
+                    case 11: category = '식당/카페'; break;
+                    case 12: category = '공공시설'; break;
+                    case 13: category = '엔터테인먼트'; break;
+                    case 21: category = '집(본인)'; break;
+                    case 22: category = '집(가족/친척)'; break;
+                    case 23: category = '회사'; break;
+                    case 24: category = '숙소'; break;
+                    default: category = '기타'; break;
                 }
+                
+                // 체류 시간 정보
+                const stayTime = place.RESIDENCE_TIME_MIN 
+                    ? `${place.RESIDENCE_TIME_MIN}분 소요` 
+                    : '체류 시간 정보 없음';
                 
                 html += `
                 <tr>
                     ${i === 0 ? `<td rowspan="${dayPlaces.length}">${day}일차</td>` : ''}
                     <td>${time}</td>
                     <td>${place.VISIT_AREA_NM || '이름 없음'}</td>
-                    <td>${category} / ${place.RESIDENCE_TIME_MIN ? place.RESIDENCE_TIME_MIN + '분 소요' : '소요 시간 미정'}</td>
+                    <td>${category} / ${stayTime}</td>
                 </tr>`;
             }
         }
         
         tbody.innerHTML = html;
+    } catch (error) {
+        console.error('일정표 생성 중 오류:', error);
     }
+}
+
+// 일정표를 위한 시간 포맷
+function formatTimeForItinerary(index, total) {
+    // 하루 8시간 일정 기준 (9:00 ~ 17:00)
+    const startHour = 9;
+    const hourInterval = total > 1 ? 8 / (total - 1) : 0;
     
-    // 일정표를 위한 시간 포맷
-    function formatTimeForItinerary(index, total) {
-        // 하루 8시간 일정 기준 (9:00 ~ 17:00)
-        const startHour = 9;
-        const hourInterval = 8 / total;
-        
-        const hour = startHour + (hourInterval * index);
-        const hourInt = Math.floor(hour);
-        const minute = Math.floor((hour - hourInt) * 60);
-        
-        return `${hourInt}:${minute < 10 ? '0' + minute : minute}`;
-    }
+    const hour = startHour + (hourInterval * index);
+    const hourInt = Math.floor(hour);
+    const minute = Math.floor((hour - hourInt) * 60);
     
-    // 지도 업데이트 (지역별)
-    function updateMapForRegion(region) {
+    return `${hourInt}:${minute < 10 ? '0' + minute : minute}`;
+}
+
+// 지도 업데이트 (지역별)
+function updateMapForRegion(region) {
+    try {
+        if (!map) return;
+        
         // 지역별 중심 좌표 및 확대 레벨 설정
         const regionCoords = {
-            '서울특별시': { lat: 37.5665, lng: 126.9780, level: 8 },
-            '경기도': { lat: 37.4138, lng: 127.5183, level: 9 },
-            '강원도': { lat: 37.8228, lng: 128.1555, level: 9 },
-            '충청북도': { lat: 36.6357, lng: 127.4914, level: 9 },
-            '충청남도': { lat: 36.5184, lng: 126.8000, level: 9 },
-            '전라북도': { lat: 35.7175, lng: 127.1530, level: 9 },
-            '전라남도': { lat: 34.8679, lng: 126.9910, level: 9 },
-            '경상북도': { lat: 36.4919, lng: 128.8889, level: 9 },
-            '경상남도': { lat: 35.4606, lng: 128.2132, level: 9 },
-            '제주도': { lat: 33.4996, lng: 126.5312, level: 10 }
+            '서울특별시': { lat: 37.5665, lng: 126.9780, zoom: 11 },
+            '경기도': { lat: 37.4138, lng: 127.5183, zoom: 9 },
+            '강원도': { lat: 37.8228, lng: 128.1555, zoom: 9 },
+            '충청북도': { lat: 36.6357, lng: 127.4914, zoom: 9 },
+            '충청남도': { lat: 36.5184, lng: 126.8000, zoom: 9 },
+            '전라북도': { lat: 35.7175, lng: 127.1530, zoom: 9 },
+            '전라남도': { lat: 34.8679, lng: 126.9910, zoom: 9 },
+            '경상북도': { lat: 36.4919, lng: 128.8889, zoom: 9 },
+            '경상남도': { lat: 35.4606, lng: 128.2132, zoom: 9 },
+            '제주도': { lat: 33.4996, lng: 126.5312, zoom: 10 }
         };
         
         if (regionCoords[region]) {
             const coords = regionCoords[region];
-            map.setCenter(new kakao.maps.LatLng(coords.lat, coords.lng));
-            map.setLevel(coords.level);
+            map.setCenter({ lat: coords.lat, lng: coords.lng });
+            map.setZoom(coords.zoom);
         }
+    } catch (error) {
+        console.error('지도 업데이트 중 오류:', error);
     }
-    
-    // 일정표 저장 (CSV 포맷)
-    function saveItinerary() {
+}
+
+// 일정표 저장 (CSV 포맷)
+function saveItinerary() {
+    try {
         if (selectedPlaces.length === 0) {
             alert('저장할 일정이 없습니다.');
             return;
@@ -523,12 +655,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 관광지 유형에 따른 카테고리 설정
                 let category = '기타';
                 switch(place.VISIT_AREA_TYPE_CD) {
-                    case 1: category = '관광명소'; break;
-                    case 2: category = '숙박'; break;
-                    case 3: category = '쇼핑'; break;
-                    case 4: category = '맛집'; break;
-                    case 5: category = '교통'; break;
-                    case 6: category = '문화시설'; break;
+                    case 1: category = '자연 관광지'; break;
+                    case 2: category = '문화/역사/종교시설'; break;
+                    case 3: category = '문화시설'; break;
+                    case 4: category = '상업지구'; break;
+                    case 5: category = '레저/스포츠'; break;
+                    case 6: category = '테마시설'; break;
+                    case 7: category = '산책로/둘레길'; break;
+                    case 8: category = '축제/행사'; break;
+                    case 9: category = '교통시설'; break;
+                    case 10: category = '상점'; break;
+                    case 11: category = '식당/카페'; break;
+                    case 24: category = '숙소'; break;
+                    default: category = '기타'; break;
                 }
                 
                 csvContent += `${day}일차,${time},${name},${category}\n`;
@@ -543,80 +682,99 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    } catch (error) {
+        console.error('일정표 저장 중 오류:', error);
+        alert('일정표 저장 중 오류가 발생했습니다.');
     }
-    
-    // 일정표 공유 기능
-    function shareItinerary() {
+}
+
+// 일정표 공유 기능
+function shareItinerary() {
+    try {
         if (selectedPlaces.length === 0) {
             alert('공유할 일정이 없습니다.');
             return;
         }
         
         // 공유 기능 구현 (클립보드에 URL 복사 또는 소셜 미디어 공유)
-        alert('공유 기능은 현재 개발 중입니다. 나중에 다시 시도해주세요.');
+        // 실제 구현 시 일정을 인코딩하여 URL 파라미터로 전달하거나
+        // 서버에 저장 후 고유 ID를 생성하여 공유하는 방식 필요
+        
+        alert('공유 기능은 현재 개발 중입니다. 곧 제공될 예정입니다.');
+    } catch (error) {
+        console.error('일정표 공유 중 오류:', error);
     }
-    
-    // 날짜 포맷팅 함수 (YYYYMMDD -> YYYY년 MM월 DD일)
-    function formatDate(dateStr) {
-        if (!dateStr) return '날짜 정보 없음';
-        
-        const year = dateStr.substring(0, 4);
-        const month = dateStr.substring(4, 6);
-        const day = dateStr.substring(6, 8);
-        
-        return `${year}년 ${month}월 ${day}일`;
-    }
-    
-    // 과거 여행 경로 추천 기능
-    function suggestPopularRoute() {
-        // 여행 ID 기준으로 방문 장소 그룹화
-        const travelGroups = {};
-        
-        touristData.forEach(place => {
-            if (place.TRAVEL_ID) {
-                if (!travelGroups[place.TRAVEL_ID]) {
-                    travelGroups[place.TRAVEL_ID] = [];
-                }
-                travelGroups[place.TRAVEL_ID].push(place);
-            }
-        });
-        
-        // 방문 장소가 3개 이상인 여행만 필터링
-        const validTravelIds = Object.keys(travelGroups).filter(id => 
-            travelGroups[id].length >= 3
-        );
-        
-        if (validTravelIds.length === 0) {
-            alert('추천할 수 있는 여행 경로가 없습니다.');
-            return;
-        }
-        
-        // 만족도가 높은 여행 선택
-        const popularTravelId = validTravelIds
-            .map(id => {
-                const avgSatisfaction = travelGroups[id]
-                    .filter(place => place.DGSTFN)
-                    .reduce((sum, place) => sum + place.DGSTFN, 0) / travelGroups[id].length;
-                
-                return { id, avgSatisfaction };
-            })
-            .sort((a, b) => b.avgSatisfaction - a.avgSatisfaction)[0].id;
-        
-        // 선택된 여행의 방문 장소들을 방문 순서대로 정렬
-        const routePlaces = travelGroups[popularTravelId]
-            .sort((a, b) => a.VISIT_ORDER - b.VISIT_ORDER);
+}
+
+// 인기 여행 경로 불러오기
+async function loadPopularRoute(placeNames) {
+    try {
+        if (!placeNames || placeNames.length === 0) return;
         
         // 기존 선택 초기화
         selectedPlaces = [];
         refreshMarkers();
         
-        // 추천 경로의 장소들 추가
-        routePlaces.forEach(place => {
-            addPlaceToSelection(place);
+        // 데이터가 로드되지 않았으면 로드
+        if (touristData.length === 0) {
+            await loadTouristData();
+        }
+        
+        // 이름이 유사한 장소 검색
+        placeNames.forEach(name => {
+            // 이름 기반 간단한 유사도 검색
+            // 실제 구현 시 더 정교한 검색 알고리즘 필요
+            const matchingPlace = touristData.find(place => 
+                place.VISIT_AREA_NM && place.VISIT_AREA_NM.includes(name)
+            );
+            
+            if (matchingPlace) {
+                selectedPlaces.push(matchingPlace);
+            } else {
+                // 일치하는 장소가 없으면 더미 데이터 생성
+                selectedPlaces.push({
+                    VISIT_AREA_NM: name,
+                    ROAD_NM_ADDR: `${name} 주변`,
+                    VISIT_AREA_TYPE_CD: 1, // 기본값: 관광명소
+                    DGSTFN: 4, // 기본 만족도
+                    // 장소별 가상 좌표 (실제 구현 시 지오코딩 API 사용 필요)
+                    X_COORD: 126.9 + Math.random() * 0.1,
+                    Y_COORD: 37.5 + Math.random() * 0.1
+                });
+            }
+        });
+        
+        // 선택된 장소 목록 업데이트
+        updateSelectedPlacesList();
+        
+        // 마커 추가
+        selectedPlaces.forEach(place => {
+            addMarkerToMap(place);
         });
         
         // 경로 최적화 및 일정표 생성
         optimizeRoute();
         generateItinerary();
+        
+        alert(`'${placeNames[0]} 외 ${placeNames.length - 1}곳' 코스를 불러왔습니다.`);
+    } catch (error) {
+        console.error('인기 경로 불러오기 중 오류:', error);
     }
+}
+
+// 날짜 포맷팅 함수 (YYYYMMDD -> YYYY년 MM월 DD일)
+function formatDate(dateStr) {
+    if (!dateStr) return '날짜 정보 없음';
+    
+    try {
+        const year = dateStr.substring(0, 4);
+        const month = dateStr.substring(4, 6);
+        const day = dateStr.substring(6, 8);
+        
+        return `${year}년 ${month}월 ${day}일`;
+    } catch (error) {
+        console.error('날짜 포맷팅 중 오류:', error, dateStr);
+        return '날짜 정보 없음';
+    }
+}
 });

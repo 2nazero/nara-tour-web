@@ -1,4 +1,4 @@
-// main.js 파일 수정
+// 문서가 로드되면 실행
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM이 로드되었습니다.');
     
@@ -27,12 +27,20 @@ document.addEventListener('DOMContentLoaded', function() {
             initializeRegionTabs();
         }
     }
+    
+    // regions.html, performances.html, routes.html 페이지는 
+    // 각각 regions.js, performances.js, routes.js 파일에서 처리
 });
+
 // 전역 변수로 데이터 캐싱
 let cachedTouristData = null;
 
 // JSONL 파일 로드 및 파싱 함수
 async function loadJSONLFile(filePath) {
+    if (cachedTouristData) {
+        return cachedTouristData;
+    }
+    
     try {
         // 절대 경로 사용
         const fullPath = `/naratour/data/ml_filtered_master_tourist_only.jsonl`;
@@ -48,7 +56,7 @@ async function loadJSONLFile(filePath) {
         console.log('로드된 데이터 미리보기:', text.substring(0, 100));
         
         // JSONL 파싱
-        return text.trim().split('\n')
+        cachedTouristData = text.trim().split('\n')
             .map(line => {
                 try {
                     return JSON.parse(line);
@@ -58,12 +66,13 @@ async function loadJSONLFile(filePath) {
                 }
             })
             .filter(item => item !== null);
+        
+        return cachedTouristData;
     } catch (error) {
         console.error('데이터 로드 중 오류 발생:', error);
         return [];
     }
 }
-
 
 // 인기 여행지 데이터 로드 및 표시
 async function loadPopularDestinations() {
@@ -71,7 +80,7 @@ async function loadPopularDestinations() {
     
     try {
         // JSONL 파일 로드
-        const touristData = await loadJSONLFile('data/ml_filtered_master_tourist_only.jsonl');
+        const touristData = await loadJSONLFile('/naratour/data/ml_filtered_master_tourist_only.jsonl');
         
         // 데이터가 없으면 메시지 표시
         if (!touristData || touristData.length === 0) {
@@ -99,28 +108,52 @@ async function loadPopularDestinations() {
             
             switch(destination.VISIT_AREA_TYPE_CD) {
                 case 1:
-                    category = '관광명소';
+                    category = '자연 관광지';
                     categoryIcon = 'fas fa-mountain';
                     break;
                 case 2:
-                    category = '숙박';
-                    categoryIcon = 'fas fa-hotel';
+                    category = '문화/역사/종교시설';
+                    categoryIcon = 'fas fa-landmark';
                     break;
                 case 3:
-                    category = '쇼핑';
-                    categoryIcon = 'fas fa-shopping-bag';
-                    break;
-                case 4:
-                    category = '맛집';
-                    categoryIcon = 'fas fa-utensils';
-                    break;
-                case 5:
-                    category = '교통';
-                    categoryIcon = 'fas fa-bus';
-                    break;
-                case 6:
                     category = '문화시설';
                     categoryIcon = 'fas fa-theater-masks';
+                    break;
+                case 4:
+                    category = '상업지구';
+                    categoryIcon = 'fas fa-store';
+                    break;
+                case 5:
+                    category = '레저/스포츠';
+                    categoryIcon = 'fas fa-running';
+                    break;
+                case 6:
+                    category = '테마시설';
+                    categoryIcon = 'fas fa-ticket-alt';
+                    break;
+                case 7:
+                    category = '산책로/둘레길';
+                    categoryIcon = 'fas fa-hiking';
+                    break;
+                case 8:
+                    category = '축제/행사';
+                    categoryIcon = 'fas fa-calendar-alt';
+                    break;
+                case 9:
+                    category = '교통시설';
+                    categoryIcon = 'fas fa-bus';
+                    break;
+                case 10:
+                    category = '상점';
+                    categoryIcon = 'fas fa-shopping-bag';
+                    break;
+                case 11:
+                    category = '식당/카페';
+                    categoryIcon = 'fas fa-utensils';
+                    break;
+                case 24:
+                    category = '숙소';
+                    categoryIcon = 'fas fa-bed';
                     break;
             }
             
@@ -158,7 +191,7 @@ async function loadPopularDestinations() {
 async function initializeRegionTabs() {
     try {
         // JSONL 파일 로드
-        const touristData = await loadJSONLFile('data/ml_filtered_master_tourist_only.jsonl');
+        const touristData = await loadJSONLFile('/naratour/data/ml_filtered_master_tourist_only.jsonl');
         
         if (!touristData || touristData.length === 0) {
             return;
@@ -172,6 +205,8 @@ async function initializeRegionTabs() {
         
         // 탭 메뉴 생성
         const tabsContainer = document.getElementById('region-tabs');
+        if (!tabsContainer) return;
+        
         let tabsHtml = `
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="all-tab" data-bs-toggle="pill" data-bs-target="#all" type="button" role="tab" aria-controls="all" aria-selected="true">전체</button>
@@ -189,6 +224,8 @@ async function initializeRegionTabs() {
         
         // 탭 컨텐츠 생성
         const tabContentContainer = document.getElementById('region-tab-content');
+        if (!tabContentContainer) return;
+        
         let tabContentHtml = `
             <div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="all-tab">
                 <div class="row">`;
@@ -230,95 +267,116 @@ async function initializeRegionTabs() {
                 <div class="col-12 text-center py-4">
                     <p>해당 지역의 데이터가 없습니다.</p>
                 </div>`;
-            }
+            });
+        
+            tabContentContainer.innerHTML = tabContentHtml;
             
-            tabContentHtml += `
-                </div>
-            </div>`;
-        });
-        
-        tabContentContainer.innerHTML = tabContentHtml;
-        
-    } catch (error) {
-        console.error('지역별 데이터 로드 중 오류 발생:', error);
-    }
-}
-
-// 관광지 카드 HTML 생성 함수
-function createDestinationCard(destination) {
-    const name = destination.VISIT_AREA_NM || '이름 없음';
-    const address = destination.ROAD_NM_ADDR || destination.LOTNO_ADDR || '';
-    const region = destination.SIDO_NM || '';
-    const satisfaction = destination.DGSTFN || '0';
-    
-    // 관광지 유형 코드에 따른 카테고리 설정
-    let category = '기타';
-    let categoryIcon = 'fas fa-map-marker-alt';
-    
-    switch(destination.VISIT_AREA_TYPE_CD) {
-        case 1:
-            category = '관광명소';
-            categoryIcon = 'fas fa-mountain';
-            break;
-        case 2:
-            category = '숙박';
-            categoryIcon = 'fas fa-hotel';
-            break;
-        case 3:
-            category = '쇼핑';
-            categoryIcon = 'fas fa-shopping-bag';
-            break;
-        case 4:
-            category = '맛집';
-            categoryIcon = 'fas fa-utensils';
-            break;
-        case 5:
-            category = '교통';
-            categoryIcon = 'fas fa-bus';
-            break;
-        case 6:
-            category = '문화시설';
-            categoryIcon = 'fas fa-theater-masks';
-            break;
+        } catch (error) {
+            console.error('지역별 데이터 로드 중 오류 발생:', error);
+        }
     }
     
-    return `
-    <div class="col-md-4 mb-4">
-        <div class="card destination-card">
-            <div class="card-img-top text-center py-4 bg-light">
-                <i class="${categoryIcon} fa-3x text-primary"></i>
-            </div>
-            <div class="card-body">
-                <h5 class="card-title">${name}</h5>
-                <p class="card-text text-muted small">${address}</p>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="badge bg-primary">${category}</span>
-                    <span class="badge bg-success">
-                        <i class="fas fa-star me-1"></i>${satisfaction}/5
-                    </span>
+    // 관광지 카드 HTML 생성 함수
+    function createDestinationCard(destination) {
+        const name = destination.VISIT_AREA_NM || '이름 없음';
+        const address = destination.ROAD_NM_ADDR || destination.LOTNO_ADDR || '';
+        const region = destination.SIDO_NM || '';
+        const satisfaction = destination.DGSTFN || '0';
+        
+        // 관광지 유형 코드에 따른 카테고리 설정
+        let category = '기타';
+        let categoryIcon = 'fas fa-map-marker-alt';
+        
+        switch(destination.VISIT_AREA_TYPE_CD) {
+            case 1:
+                category = '자연 관광지';
+                categoryIcon = 'fas fa-mountain';
+                break;
+            case 2:
+                category = '문화/역사/종교시설';
+                categoryIcon = 'fas fa-landmark';
+                break;
+            case 3:
+                category = '문화시설';
+                categoryIcon = 'fas fa-theater-masks';
+                break;
+            case 4:
+                category = '상업지구';
+                categoryIcon = 'fas fa-store';
+                break;
+            case 5:
+                category = '레저/스포츠';
+                categoryIcon = 'fas fa-running';
+                break;
+            case 6:
+                category = '테마시설';
+                categoryIcon = 'fas fa-ticket-alt';
+                break;
+            case 7:
+                category = '산책로/둘레길';
+                categoryIcon = 'fas fa-hiking';
+                break;
+            case 8:
+                category = '축제/행사';
+                categoryIcon = 'fas fa-calendar-alt';
+                break;
+            case 9:
+                category = '교통시설';
+                categoryIcon = 'fas fa-bus';
+                break;
+            case 10:
+                category = '상점';
+                categoryIcon = 'fas fa-shopping-bag';
+                break;
+            case 11:
+                category = '식당/카페';
+                categoryIcon = 'fas fa-utensils';
+                break;
+            case 12:
+                category = '공공시설';
+                categoryIcon = 'fas fa-building';
+                break;
+            case 13:
+                category = '엔터테인먼트';
+                categoryIcon = 'fas fa-film';
+                break;
+            case 21:
+                category = '집(본인)';
+                categoryIcon = 'fas fa-home';
+                break;
+            case 22:
+                category = '집(가족/친척)';
+                categoryIcon = 'fas fa-house-user';
+                break;
+            case 23:
+                category = '회사';
+                categoryIcon = 'fas fa-briefcase';
+                break;
+            case 24:
+                category = '숙소';
+                categoryIcon = 'fas fa-bed';
+                break;
+        }
+        
+        return `
+        <div class="col-md-4 mb-4">
+            <div class="card destination-card">
+                <div class="card-img-top text-center py-4 bg-light">
+                    <i class="${categoryIcon} fa-3x text-primary"></i>
                 </div>
-                <div class="mt-2">
-                    <span class="badge bg-secondary">${region}</span>
+                <div class="card-body">
+                    <h5 class="card-title">${name}</h5>
+                    <p class="card-text text-muted small">${address}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="badge bg-primary">${category}</span>
+                        <span class="badge bg-success">
+                            <i class="fas fa-star me-1"></i>${satisfaction}/5
+                        </span>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-secondary">${region}</span>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>`;
-}
-
-// 지역별 여행지 필터링 함수 (regions.html 페이지에서 사용)
-function filterByRegion(region) {
-    // 이 함수는 regions.html 페이지에서 구현 예정
-    console.log('지역 필터링:', region);
-}
-
-// 공연 정보 필터링 함수 (performances.html 페이지에서 사용)
-function filterPerformances(criteria) {
-    // 이 함수는 performances.html 페이지에서 구현 예정
-    console.log('공연 필터링:', criteria);
-}
-
-// 여행 경로 계획 함수 (routes.html 페이지에서 사용)
-function planRoute(destinations) {
-    // 이 함수는 routes.html 페이지에서 구현 예정
-    console.log('경로 계획:', destinations);
-}
+        </div>`;
+    }
