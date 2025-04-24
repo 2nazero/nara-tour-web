@@ -1,8 +1,13 @@
+# netlify/netlify.toml
 [build]
-  publish = "."
   functions = "netlify/functions"
+  publish = "."
 
 [dev]
-  publish = "."
   functions = "netlify/functions"
-  port = 8888
+  publish = "."
+
+[[redirects]]
+  from = "/.netlify/functions/*"
+  to = "/.netlify/functions/:splat"
+  status = 200

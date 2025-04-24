@@ -1,3 +1,103 @@
+// assets/js/regions.js
+// 기존 코드 위에 추가
+
+// 보안 API 키로 지도 로드
+async function loadMapWithSecureAPI() {
+    try {
+      // 지도 컨테이너 확인
+      const mapContainer = document.getElementById('map');
+      if (!mapContainer) {
+        console.error('지도 컨테이너를 찾을 수 없습니다.');
+        return;
+      }
+      
+      // 로딩 표시
+      mapContainer.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">지도 로딩 중...</span></div></div>';
+      
+      // Netlify Function에서 API 키 요청
+      const response = await fetch('/.netlify/functions/getMapData');
+      if (!response.ok) {
+        throw new Error('API 키를 가져올 수 없습니다.');
+      }
+      
+      const data = await response.json();
+      const apiKey = data.apiKey;
+      
+      // 기존 구글 지도 스크립트가 있으면 제거
+      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+      if (existingScript) {
+        existingScript.remove();
+      }
+      
+      // 새 스크립트 동적 추가
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initializeMap`;
+        script.async = true;
+        script.defer = true;
+        script.onerror = () => reject(new Error('Google Maps 스크립트 로드 실패'));
+        
+        // 콜백 함수 정의
+        window.initializeMap = function() {
+          // 이 함수는 구글 지도 API가 로드된 후 호출됩니다
+          // 기존 지도 초기화 코드를 여기서 호출
+          initializeRegionsMap();
+          resolve();
+        };
+        
+        document.head.appendChild(script);
+      });
+    } catch (error) {
+      console.error('지도 로딩에 실패했습니다:', error);
+      const mapContainer = document.getElementById('map');
+      if (mapContainer) {
+        mapContainer.innerHTML = `
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>지도를 로드할 수 없습니다. 잠시 후 다시 시도해주세요.
+          </div>
+        `;
+      }
+    }
+  }
+  
+  // 기존 지도 초기화 함수
+  function initializeRegionsMap() {
+    const mapContainer = document.getElementById('map');
+    
+    // 기본 지도 옵션 (한국 중심)
+    const mapOptions = {
+      center: { lat: 36.2, lng: 127.9 }, // 한국 중심 좌표
+      zoom: 7,
+      mapTypeId: google.maps.MapTypeId.ROADMAP,
+      mapTypeControl: true,
+      mapTypeControlOptions: {
+        style: google.maps.MapTypeControlStyle.DROPDOWN_MENU
+      }
+    };
+    
+    // 지도 생성
+    const map = new google.maps.Map(mapContainer, mapOptions);
+    
+    // 여기에 마커, 정보창 등 추가 로직 구현
+    // ...
+    
+    // 지도 인스턴스를 전역으로 저장 (다른 함수에서 접근할 수 있도록)
+    window.regionsMap = map;
+  }
+  
+  // 페이지 로드 시 실행
+  document.addEventListener('DOMContentLoaded', () => {
+    // 보안 API 로드 함수 호출
+    loadMapWithSecureAPI();
+    
+    // 기타 이벤트 리스너 및 기능 초기화
+    // ...
+  });
+
+
+
+
+
 // 문서가 로드되면 실행
 document.addEventListener('DOMContentLoaded', function() {
     // 전역 변수
