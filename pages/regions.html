@@ -11,14 +11,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
-    <!-- 구글 지도 API 스크립트 태그 삭제 - Netlify Functions에서 처리 -->
+    <!-- 구글 지도 API - 임시로 직접 포함 -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA_BHBDOPcwh0FqB0BI_rCVYgDLZuXACOg&callback=initMap" async defer></script>
 </head>
 <body>
     <header>
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
             <div class="container">
                 <a class="navbar-brand" href="../index.html">
-                    <img src="../assets/images/naraicon.png" alt="나라투어 로고" height="50" class="d-inline-block">
+                    <img src="../assets/images/naraicon.png" alt="나라투어 로고" height="40" class="d-inline-block align-text-top">
+                    <span class="ms-2 align-middle">나라투어</span>
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -43,7 +45,205 @@
         </nav>
     </header>
 
-    <!-- 페이지 본문 내용은 그대로 유지하고 경로만 수정 -->
+    <main class="py-5">
+        <div class="container">
+            <!-- 지역 정보 헤더 -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h1 id="region-title">전체 지역 정보</h1>
+                    <p id="region-description" class="lead">대한민국의 주요 여행지 정보를 확인하세요.</p>
+                </div>
+            </div>
+            
+            <div class="row">
+                <!-- 왼쪽 사이드바 -->
+                <div class="col-md-3">
+                    <!-- 지역 목록 -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            지역 선택
+                        </div>
+                        <div class="card-body p-0">
+                            <ul id="region-list" class="list-group list-group-flush">
+                                <li class="list-group-item">
+                                    <a href="#" class="d-block py-2 active" data-region="all">전체</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <a href="#" class="d-block py-2" data-region="서울특별시">서울특별시</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <a href="#" class="d-block py-2" data-region="경기도">경기도</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <a href="#" class="d-block py-2" data-region="강원도">강원도</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <a href="#" class="d-block py-2" data-region="충청북도">충청북도</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <a href="#" class="d-block py-2" data-region="충청남도">충청남도</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <a href="#" class="d-block py-2" data-region="전라북도">전라북도</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <a href="#" class="d-block py-2" data-region="전라남도">전라남도</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <a href="#" class="d-block py-2" data-region="경상북도">경상북도</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <a href="#" class="d-block py-2" data-region="경상남도">경상남도</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <a href="#" class="d-block py-2" data-region="제주특별자치도">제주특별자치도</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- 필터 섹션 -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            필터링
+                        </div>
+                        <div class="card-body">
+                            <h6>카테고리</h6>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="1" id="category1" checked>
+                                    <label class="form-check-label" for="category1">자연 관광지</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="2" id="category2" checked>
+                                    <label class="form-check-label" for="category2">문화/역사/종교시설</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="3" id="category3" checked>
+                                    <label class="form-check-label" for="category3">문화시설</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="4" id="category4" checked>
+                                    <label class="form-check-label" for="category4">상업지구</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="5" id="category5" checked>
+                                    <label class="form-check-label" for="category5">레저/스포츠</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="6" id="category6" checked>
+                                    <label class="form-check-label" for="category6">테마시설</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="11" id="category11" checked>
+                                    <label class="form-check-label" for="category11">식당/카페</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="24" id="category24" checked>
+                                    <label class="form-check-label" for="category24">숙소</label>
+                                </div>
+                            </div>
+                            
+                            <h6>최소 만족도</h6>
+                            <div class="mb-3">
+                                <input type="range" class="form-range" min="1" max="5" step="1" id="satisfaction-range" value="3">
+                                <div class="d-flex justify-content-between">
+                                    <span>1</span>
+                                    <span id="satisfaction-value">3</span>
+                                    <span>5</span>
+                                </div>
+                            </div>
+                            
+                            <button id="apply-filter" class="btn btn-primary w-100">필터 적용</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 오른쪽 메인 콘텐츠 -->
+                <div class="col-md-9">
+                    <!-- 지도 섹션 -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <i class="fas fa-map-marked-alt me-2"></i>관광지 지도
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="map" style="height: 400px;"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 통계 차트 섹션 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    카테고리별 분포
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="category-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    만족도 분포
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="satisfaction-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 인기 여행지 테이블 -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <i class="fas fa-crown me-2"></i>인기 여행지 TOP 5
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-striped mb-0" id="top-places-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 10%">순위</th>
+                                        <th style="width: 35%">이름</th>
+                                        <th style="width: 20%">지역</th>
+                                        <th style="width: 20%">카테고리</th>
+                                        <th style="width: 15%">만족도</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="5" class="text-center">데이터를 불러오는 중...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- 여행지 목록 섹션 -->
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-list me-2"></i>여행지 목록
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row" id="region-places-container">
+                                <div class="col-12 text-center py-5">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-center mt-4">
+                                <button id="load-more" class="btn btn-outline-primary">더 보기</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <footer class="bg-dark text-white py-4">
         <div class="container">
@@ -79,7 +279,6 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <!-- 사용자 정의 스크립트 -->
-    <script src="../assets/js/main.js"></script>
     <script src="../assets/js/regions.js"></script>
 </body>
 </html>
