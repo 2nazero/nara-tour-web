@@ -43,7 +43,7 @@ async function loadJSONLFile(filePath) {
     }
     
     try {
-        const fullPath = `/naratour/data/ml_filtered_master_tourist_only.jsonl`;
+        const fullPath = `./data/ml_filtered_master_tourist_only.jsonl`;
         console.log('데이터 로드 시도:', fullPath);
         
         const response = await fetch(fullPath);
