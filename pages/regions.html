@@ -11,11 +11,421 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
-    <!-- Leaflet 지도 라이브러리 (구글 맵 대신 사용) -->
+    <!-- Leaflet 지도 -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet 클러스터링 -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css">
+    
+    <style>
+        /* 커스텀 스타일 */
+        .navbar-brand img {
+            transition: transform 0.2s ease;
+        }
+        .navbar-brand:hover img {
+            transform: scale(1.05);
+        }
+        
+        .filter-sidebar {
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 20px;
+            position: sticky;
+            top: 20px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .filter-sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .filter-sidebar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .filter-sidebar::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        
+        .filter-section {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease;
+        }
+        
+        .filter-section:hover {
+            transform: translateY(-2px);
+        }
+        
+        .filter-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        
+        .filter-header h6 {
+            margin: 0;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        
+        .collapse-icon {
+            transition: transform 0.3s ease;
+        }
+        
+        .collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+        
+        .search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            padding-left: 45px;
+            border-radius: 25px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        
+        .quick-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .quick-filter-btn {
+            padding: 6px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 20px;
+            background: white;
+            color: #6c757d;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .quick-filter-btn:hover {
+            background: #e9ecef;
+        }
+        
+        .quick-filter-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        .range-slider {
+            position: relative;
+            margin: 20px 0;
+        }
+        
+        .range-values {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .current-value {
+            background: #007bff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        
+        .region-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .region-btn {
+            padding: 10px 5px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            background: white;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.875rem;
+        }
+        
+        .region-btn:hover {
+            border-color: #007bff;
+            background: #f8f9ff;
+        }
+        
+        .region-btn.active {
+            border-color: #007bff;
+            background: #007bff;
+            color: white;
+        }
+        
+        .card-enhanced {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .card-enhanced:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .place-card {
+            position: relative;
+            height: 100%;
+        }
+        
+        .place-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #007bff, #6610f2);
+        }
+        
+        .place-image {
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+        }
+        
+        .place-rating {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.875rem;
+        }
+        
+        .loading-skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .view-toggle {
+            display: flex;
+            background: #f8f9fa;
+            border-radius: 25px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .view-btn {
+            flex: 1;
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .view-btn.active {
+            background: #007bff;
+            color: white;
+        }
+        
+        .sort-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .fab-menu {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+        
+        .fab-main {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #007bff;
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,123,255,0.4);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .fab-main:hover {
+            transform: scale(1.1);
+            background: #0056b3;
+        }
+        
+        .fab-options {
+            position: absolute;
+            bottom: 70px;
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .fab-menu.open .fab-options {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .fab-option {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: white;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .fab-option:hover {
+            background: #007bff;
+            color: white;
+        }
+        
+        .filter-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .filter-tag {
+            background: #e9ecef;
+            color: #495057;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .filter-tag .remove {
+            cursor: pointer;
+            opacity: 0.7;
+        }
+        
+        .filter-tag .remove:hover {
+            opacity: 1;
+        }
+        
+        .scroll-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #007bff, #6610f2);
+            transform-origin: left;
+            transform: scaleX(0);
+            z-index: 1001;
+        }
+        
+        @media (max-width: 768px) {
+            .filter-sidebar {
+                position: static;
+                margin-bottom: 20px;
+            }
+            
+            .fab-menu {
+                bottom: 20px;
+                right: 20px;
+            }
+            
+            .region-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 8px;
+            }
+        }
+        
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+    </style>
 </head>
 <body>
+    <!-- 스크롤 인디케이터 -->
+    <div class="scroll-indicator" id="scroll-indicator"></div>
+
     <header>
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
             <div class="container">
@@ -23,7 +433,7 @@
                     <img src="../assets/images/naraicon.png" alt="나라투어 로고" height="40" class="d-inline-block align-text-top">
                     <span class="ms-2 align-middle">나라투어</span>
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
@@ -38,7 +448,7 @@
                             <a class="nav-link" href="routes.html">여행 경로</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="regions.html">지역별 정보</a>
+                            <a class="nav-link active" href="regions.html">지역별 정보</a>
                         </li>
                     </ul>
                 </div>
@@ -46,138 +456,239 @@
         </nav>
     </header>
 
-    <main class="py-5">
-        <div class="container">
-            <!-- 지역 정보 헤더 -->
+    <main class="py-4">
+        <div class="container-fluid">
+            <!-- 헤더 영역 -->
             <div class="row mb-4">
                 <div class="col-12">
-                    <h1 id="region-title">전체 지역 정보</h1>
-                    <p id="region-description" class="lead">대한민국의 주요 여행지 정보를 확인하세요.</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h1 id="region-title">전체 지역 정보</h1>
+                            <p id="region-description" class="lead mb-0">대한민국의 주요 여행지 정보를 확인하세요.</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary" id="bookmark-btn">
+                                <i class="fas fa-bookmark"></i> 즐겨찾기
+                            </button>
+                            <button class="btn btn-outline-success" id="share-btn">
+                                <i class="fas fa-share"></i> 공유
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 통계 카드 -->
+            <div class="stats-cards" id="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-places">-</div>
+                    <div class="stat-label">총 여행지</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="avg-satisfaction">-</div>
+                    <div class="stat-label">평균 만족도</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="popular-category">-</div>
+                    <div class="stat-label">인기 카테고리</div>
                 </div>
             </div>
             
             <div class="row">
-                <!-- 왼쪽 사이드바 -->
-                <div class="col-md-3">
-                    <!-- 지역 목록 -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            지역 선택
+                <!-- 왼쪽 필터 사이드바 -->
+                <div class="col-lg-3">
+                    <div class="filter-sidebar">
+                        <!-- 검색 -->
+                        <div class="search-container">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" class="form-control search-input" id="search-input" 
+                                   placeholder="여행지 검색...">
                         </div>
-                        <div class="card-body p-0">
-                            <ul id="region-list" class="list-group list-group-flush">
-                                <li class="list-group-item">
-                                    <a href="#" class="d-block py-2 active" data-region="all">전체</a>
-                                </li>
-                                <li class="list-group-item">
-                                    <a href="#" class="d-block py-2" data-region="서울특별시">서울특별시</a>
-                                </li>
-                                <li class="list-group-item">
-                                    <a href="#" class="d-block py-2" data-region="경기도">경기도</a>
-                                </li>
-                                <li class="list-group-item">
-                                    <a href="#" class="d-block py-2" data-region="강원도">강원도</a>
-                                </li>
-                                <li class="list-group-item">
-                                    <a href="#" class="d-block py-2" data-region="충청북도">충청북도</a>
-                                </li>
-                                <li class="list-group-item">
-                                    <a href="#" class="d-block py-2" data-region="충청남도">충청남도</a>
-                                </li>
-                                <li class="list-group-item">
-                                    <a href="#" class="d-block py-2" data-region="전라북도">전라북도</a>
-                                </li>
-                                <li class="list-group-item">
-                                    <a href="#" class="d-block py-2" data-region="전라남도">전라남도</a>
-                                </li>
-                                <li class="list-group-item">
-                                    <a href="#" class="d-block py-2" data-region="경상북도">경상북도</a>
-                                </li>
-                                <li class="list-group-item">
-                                    <a href="#" class="d-block py-2" data-region="경상남도">경상남도</a>
-                                </li>
-                                <li class="list-group-item">
-                                    <a href="#" class="d-block py-2" data-region="제주특별자치도">제주특별자치도</a>
-                                </li>
-                            </ul>
+
+                        <!-- 빠른 필터 -->
+                        <div class="quick-filters">
+                            <button class="quick-filter-btn active" data-filter="all">전체</button>
+                            <button class="quick-filter-btn" data-filter="high-rating">고평점</button>
+                            <button class="quick-filter-btn" data-filter="popular">인기</button>
+                            <button class="quick-filter-btn" data-filter="recent">최신</button>
                         </div>
-                    </div>
-                    
-                    <!-- 필터 섹션 -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            필터링
-                        </div>
-                        <div class="card-body">
-                            <h6>카테고리</h6>
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="1" id="category1" checked>
-                                    <label class="form-check-label" for="category1">자연 관광지</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="2" id="category2" checked>
-                                    <label class="form-check-label" for="category2">문화/역사/종교시설</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="3" id="category3" checked>
-                                    <label class="form-check-label" for="category3">문화시설</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="4" id="category4" checked>
-                                    <label class="form-check-label" for="category4">상업지구</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="5" id="category5" checked>
-                                    <label class="form-check-label" for="category5">레저/스포츠</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="6" id="category6" checked>
-                                    <label class="form-check-label" for="category6">테마시설</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="11" id="category11" checked>
-                                    <label class="form-check-label" for="category11">식당/카페</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="24" id="category24" checked>
-                                    <label class="form-check-label" for="category24">숙소</label>
+
+                        <!-- 현재 적용된 필터 태그 -->
+                        <div class="filter-tags" id="filter-tags"></div>
+
+                        <!-- 지역 선택 -->
+                        <div class="filter-section">
+                            <div class="filter-header" data-bs-toggle="collapse" data-bs-target="#region-filter">
+                                <h6><i class="fas fa-map-marker-alt me-2"></i>지역</h6>
+                                <i class="fas fa-chevron-down collapse-icon"></i>
+                            </div>
+                            <div class="collapse show" id="region-filter">
+                                <div class="region-grid" id="region-grid">
+                                    <button class="region-btn active" data-region="all">전체</button>
+                                    <button class="region-btn" data-region="서울특별시">서울</button>
+                                    <button class="region-btn" data-region="경기도">경기</button>
+                                    <button class="region-btn" data-region="강원도">강원</button>
+                                    <button class="region-btn" data-region="충청북도">충북</button>
+                                    <button class="region-btn" data-region="충청남도">충남</button>
+                                    <button class="region-btn" data-region="전라북도">전북</button>
+                                    <button class="region-btn" data-region="전라남도">전남</button>
+                                    <button class="region-btn" data-region="경상북도">경북</button>
+                                    <button class="region-btn" data-region="경상남도">경남</button>
+                                    <button class="region-btn" data-region="제주특별자치도">제주</button>
                                 </div>
                             </div>
-                            
-                            <h6>최소 만족도</h6>
-                            <div class="mb-3">
-                                <input type="range" class="form-range" min="1" max="5" step="1" id="satisfaction-range" value="3">
-                                <div class="d-flex justify-content-between">
-                                    <span>1</span>
-                                    <span id="satisfaction-value">3</span>
-                                    <span>5</span>
+                        </div>
+                        
+                        <!-- 카테고리 필터 -->
+                        <div class="filter-section">
+                            <div class="filter-header" data-bs-toggle="collapse" data-bs-target="#category-filter">
+                                <h6><i class="fas fa-tags me-2"></i>카테고리</h6>
+                                <i class="fas fa-chevron-down collapse-icon"></i>
+                            </div>
+                            <div class="collapse show" id="category-filter">
+                                <div class="mb-2">
+                                    <input class="form-check-input" type="checkbox" value="1" id="cat1" checked>
+                                    <label class="form-check-label ms-2" for="cat1">🏔️ 자연 관광지</label>
+                                </div>
+                                <div class="mb-2">
+                                    <input class="form-check-input" type="checkbox" value="2" id="cat2" checked>
+                                    <label class="form-check-label ms-2" for="cat2">🏛️ 문화/역사</label>
+                                </div>
+                                <div class="mb-2">
+                                    <input class="form-check-input" type="checkbox" value="3" id="cat3" checked>
+                                    <label class="form-check-label ms-2" for="cat3">🎭 문화시설</label>
+                                </div>
+                                <div class="mb-2">
+                                    <input class="form-check-input" type="checkbox" value="4" id="cat4" checked>
+                                    <label class="form-check-label ms-2" for="cat4">🛍️ 상업지구</label>
+                                </div>
+                                <div class="mb-2">
+                                    <input class="form-check-input" type="checkbox" value="5" id="cat5" checked>
+                                    <label class="form-check-label ms-2" for="cat5">🏃 레저/스포츠</label>
+                                </div>
+                                <div class="mb-2">
+                                    <input class="form-check-input" type="checkbox" value="6" id="cat6" checked>
+                                    <label class="form-check-label ms-2" for="cat6">🎪 테마시설</label>
+                                </div>
+                                <div class="mb-2">
+                                    <input class="form-check-input" type="checkbox" value="11" id="cat11" checked>
+                                    <label class="form-check-label ms-2" for="cat11">🍽️ 식당/카페</label>
+                                </div>
+                                <div class="mb-2">
+                                    <input class="form-check-input" type="checkbox" value="24" id="cat24" checked>
+                                    <label class="form-check-label ms-2" for="cat24">🏨 숙소</label>
                                 </div>
                             </div>
-                            
-                            <button id="apply-filter" class="btn btn-primary w-100">필터 적용</button>
+                        </div>
+                        
+                        <!-- 만족도 필터 -->
+                        <div class="filter-section">
+                            <div class="filter-header" data-bs-toggle="collapse" data-bs-target="#satisfaction-filter">
+                                <h6><i class="fas fa-star me-2"></i>만족도</h6>
+                                <i class="fas fa-chevron-down collapse-icon"></i>
+                            </div>
+                            <div class="collapse show" id="satisfaction-filter">
+                                <div class="range-slider">
+                                    <input type="range" class="form-range" min="1" max="5" step="0.5" 
+                                           id="satisfaction-range" value="3">
+                                    <div class="range-values">
+                                        <span>1점</span>
+                                        <span class="current-value" id="satisfaction-value">3점</span>
+                                        <span>5점</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 거리 필터 -->
+                        <div class="filter-section">
+                            <div class="filter-header" data-bs-toggle="collapse" data-bs-target="#distance-filter">
+                                <h6><i class="fas fa-route me-2"></i>거리</h6>
+                                <i class="fas fa-chevron-down collapse-icon"></i>
+                            </div>
+                            <div class="collapse" id="distance-filter">
+                                <div class="mb-2">
+                                    <input class="form-check-input" type="radio" name="distance" value="all" id="dist-all" checked>
+                                    <label class="form-check-label ms-2" for="dist-all">전체</label>
+                                </div>
+                                <div class="mb-2">
+                                    <input class="form-check-input" type="radio" name="distance" value="near" id="dist-near">
+                                    <label class="form-check-label ms-2" for="dist-near">10km 이내</label>
+                                </div>
+                                <div class="mb-2">
+                                    <input class="form-check-input" type="radio" name="distance" value="medium" id="dist-medium">
+                                    <label class="form-check-label ms-2" for="dist-medium">50km 이내</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 필터 초기화 -->
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" id="apply-filter">
+                                <i class="fas fa-filter me-2"></i>필터 적용
+                            </button>
+                            <button class="btn btn-outline-secondary" id="reset-filter">
+                                <i class="fas fa-undo me-2"></i>초기화
+                            </button>
                         </div>
                     </div>
                 </div>
                 
                 <!-- 오른쪽 메인 콘텐츠 -->
-                <div class="col-md-9">
+                <div class="col-lg-9">
                     <!-- 지도 섹션 -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <i class="fas fa-map-marked-alt me-2"></i>관광지 지도
+                    <div class="card card-enhanced mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-map-marked-alt me-2"></i>관광지 지도
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" id="map-cluster-toggle">
+                                    <i class="fas fa-layer-group"></i> 클러스터
+                                </button>
+                                <button class="btn btn-outline-primary" id="map-fullscreen">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="card-body p-0">
-                            <div id="map" style="height: 400px;"></div>
+                            <div id="map" style="height: 450px; border-radius: 0 0 15px 15px;"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 보기 방식 전환 및 정렬 -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="view-toggle">
+                            <button class="view-btn active" data-view="grid">
+                                <i class="fas fa-th"></i> 그리드
+                            </button>
+                            <button class="view-btn" data-view="list">
+                                <i class="fas fa-list"></i> 리스트
+                            </button>
+                            <button class="view-btn" data-view="map">
+                                <i class="fas fa-map"></i> 지도
+                            </button>
+                        </div>
+                        
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="text-muted" id="result-count">결과: 0개</span>
+                            <div class="sort-dropdown">
+                                <select class="form-select form-select-sm" id="sort-select">
+                                    <option value="satisfaction">만족도 높은 순</option>
+                                    <option value="name">이름 순</option>
+                                    <option value="recent">최신 순</option>
+                                    <option value="popular">인기 순</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     
                     <!-- 통계 차트 섹션 -->
-                    <div class="row mb-4">
+                    <div class="row mb-4" id="charts-section">
                         <div class="col-md-6">
-                            <div class="card h-100">
+                            <div class="card card-enhanced h-100">
                                 <div class="card-header">
-                                    카테고리별 분포
+                                    <i class="fas fa-chart-pie me-2"></i>카테고리별 분포
                                 </div>
                                 <div class="card-body">
                                     <canvas id="category-chart"></canvas>
@@ -185,9 +696,9 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="card h-100">
+                            <div class="card card-enhanced h-100">
                                 <div class="card-header">
-                                    만족도 분포
+                                    <i class="fas fa-chart-bar me-2"></i>만족도 분포
                                 </div>
                                 <div class="card-body">
                                     <canvas id="satisfaction-chart"></canvas>
@@ -197,47 +708,71 @@
                     </div>
                     
                     <!-- 인기 여행지 테이블 -->
-                    <div class="card mb-4">
+                    <div class="card card-enhanced mb-4">
                         <div class="card-header">
                             <i class="fas fa-crown me-2"></i>인기 여행지 TOP 5
                         </div>
                         <div class="card-body p-0">
-                            <table class="table table-striped mb-0" id="top-places-table">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 10%">순위</th>
-                                        <th style="width: 35%">이름</th>
-                                        <th style="width: 20%">지역</th>
-                                        <th style="width: 20%">카테고리</th>
-                                        <th style="width: 15%">만족도</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td colspan="5" class="text-center">데이터를 불러오는 중...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0" id="top-places-table">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="10%">순위</th>
+                                            <th width="35%">이름</th>
+                                            <th width="20%">지역</th>
+                                            <th width="20%">카테고리</th>
+                                            <th width="15%">만족도</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="5" class="text-center py-4">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">로딩 중...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                     
                     <!-- 여행지 목록 섹션 -->
-                    <div class="card">
+                    <div class="card card-enhanced">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <div>
                                 <i class="fas fa-list me-2"></i>여행지 목록
+                                <span class="badge bg-primary ms-2" id="places-count">0</span>
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" id="export-btn">
+                                    <i class="fas fa-download"></i> 내보내기
+                                </button>
+                                <button class="btn btn-outline-primary" id="compare-btn">
+                                    <i class="fas fa-balance-scale"></i> 비교
+                                </button>
                             </div>
                         </div>
                         <div class="card-body">
                             <div class="row" id="region-places-container">
+                                <!-- 로딩 스켈레톤 -->
                                 <div class="col-12 text-center py-5">
                                     <div class="spinner-border text-primary" role="status">
-                                        <span class="visually-hidden">Loading...</span>
+                                        <span class="visually-hidden">로딩 중...</span>
                                     </div>
+                                    <p class="mt-3">데이터를 불러오는 중...</p>
                                 </div>
                             </div>
+                            
+                            <!-- 무한 스크롤 센티넬 -->
+                            <div id="scroll-sentinel" style="height: 10px;"></div>
+                            
+                            <!-- 더보기 버튼 -->
                             <div class="text-center mt-4">
-                                <button id="load-more" class="btn btn-outline-primary">더 보기</button>
+                                <button id="load-more" class="btn btn-outline-primary btn-lg">
+                                    <i class="fas fa-plus-circle me-2"></i>더 보기
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -245,6 +780,27 @@
             </div>
         </div>
     </main>
+
+    <!-- FAB 메뉴 -->
+    <div class="fab-menu" id="fab-menu">
+        <button class="fab-main" id="fab-main">
+            <i class="fas fa-plus"></i>
+        </button>
+        <div class="fab-options">
+            <button class="fab-option" id="fab-top" title="맨 위로">
+                <i class="fas fa-arrow-up"></i>
+            </button>
+            <button class="fab-option" id="fab-filter" title="필터">
+                <i class="fas fa-filter"></i>
+            </button>
+            <button class="fab-option" id="fab-bookmark" title="즐겨찾기">
+                <i class="fas fa-bookmark"></i>
+            </button>
+            <button class="fab-option" id="fab-location" title="내 위치">
+                <i class="fas fa-crosshairs"></i>
+            </button>
+        </div>
+    </div>
 
     <footer class="bg-dark text-white py-4">
         <div class="container">
@@ -260,26 +816,31 @@
                         <li><a href="performances.html" class="text-white">공연 정보</a></li>
                         <li><a href="routes.html" class="text-white">여행 경로</a></li>
                         <li><a href="regions.html" class="text-white">지역별 정보</a></li>
+                        <li><a href="comics.html" class="text-white">시고르 4컷툰</a></li>
                     </ul>
                 </div>
                 <div class="col-md-3">
-                    <h5>연락처</h5>
+                    <address class="small">
+                        서울특별시 종로구 삼봉로 81, 409호<br>
+                        (수송동, 두산위브파빌리온)<br>
+                        우편번호 03150
+                    </address>
                     <ul class="list-unstyled">
-                        <li><i class="fas fa-envelope me-2"></i> info@naratour.com</li>
-                        <li><i class="fas fa-phone me-2"></i> 02-123-4567</li>
+                        <li><i class="fas fa-phone me-2"></i> TEL. 02-3141-7644</li>
+                        <li><i class="fas fa-fax me-2"></i> FAX. 02-3141-7602</li>
+                        <li><i class="fas fa-envelope me-2"></i> nara@narainformation.com</li>
                     </ul>
                 </div>
             </div>
             <hr>
             <div class="text-center">
-                <p>&copy; 2025 나라투어. 모든 권리 보유.</p>
+                <p>&copy; 2025 (주)나라지식정보 Copyright.All rights reserved</p>
             </div>
         </div>
     </footer>
-
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- 사용자 정의 스크립트 -->
+    <!-- 메인 스크립트 -->
     <script src="../assets/js/regions.js"></script>
 </body>
 </html>

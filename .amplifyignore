@@ -1,0 +1,29 @@
+# 데이터 파일 제외
+data/
+*.jsonl
+
+# ZIP 파일 제외 (중요!)
+*.zip
+
+# Node.js 관련 제외
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Git 관련 제외
+.git/
+.gitignore
+
+# Netlify 관련 제외
+netlify/
+.netlify/
+
+# Amplify 임시 파일 제외
+17494*.zip
+amplify-build-*
+
+# 기타 제외
+*.log
+.DS_Store
+.env

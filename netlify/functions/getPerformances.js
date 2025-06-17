@@ -1,14 +1,13 @@
 // netlify/functions/getPerformances.js
 const axios = require('axios');
-const { Configuration, OpenAIApi } = require("openai");
 
 exports.handler = async function(event, context) {
   // CORS 헤더 설정
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Content-Type': 'application/json'
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Content-Type': 'application/json; charset=utf-8'
   };
 
   // OPTIONS 요청 처리 (CORS preflight)
@@ -23,421 +22,600 @@ exports.handler = async function(event, context) {
   try {
     // 쿼리 파라미터 파싱
     const queryParams = event.queryStringParameters || {};
-    let { region, genre, keyword, page = '1', limit = '30' } = queryParams;
+    let { region, genre, keyword, page = '1', limit = '9', startDate = '', endDate = '' } = queryParams;
     
-    // OpenAI API 키
-    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+    // 한국관광공사 API 키 (인코딩된 키)
+    const TOUR_API_KEY = 'Tu0trZCGNDsho41DoZ5s3owOJnzOMKG8YkTf0tI6O5gEgXhWZModqYaIZ2ZsnYOFBkjMT%2FYN%2F3AO8xVidwReOA%3D%3D';
     
-    if (!OPENAI_API_KEY) {
-      console.error('OpenAI API 키가 설정되지 않았습니다.');
-      // API 키가 없는 경우 샘플 데이터 반환
-      const sampleData = generateSamplePerformances(region, genre, keyword);
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(sampleData)
-      };
-    }
+    console.log('API 키 확인:', TOUR_API_KEY ? '키가 설정됨' : '키가 없음');
     
-    // 검색어 구성
-    let searchQuery = "한국 공연 정보";
-    if (region) searchQuery += ` ${region}`;
-    if (genre) searchQuery += ` ${genre}`;
-    if (keyword) searchQuery += ` ${keyword}`;
+    // 날짜 포맷 변환 (YYYY-MM-DD -> YYYYMMDD)
+    const formattedStartDate = startDate ? startDate.replace(/-/g, '') : '';
+    const formattedEndDate = endDate ? endDate.replace(/-/g, '') : '';
+    
+    // 현재 날짜 구하기 (YYYYMMDD 형식) - 시작일이 지정되지 않은 경우 사용
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    
+    // 지역 코드 매핑
+    const regionCode = getRegionCode(region);
+    console.log('지역 코드:', regionCode, '지역:', region);
+
+    // 한국관광공사 Tour API 호출
+    console.log('Tour API 호출 시작...');
     
     try {
-      // 현실적인 공연 정보 생성
-      const performances = await generateRealisticPerformances(
-        OPENAI_API_KEY, 
-        region || '전국', 
-        genre || '전체', 
-        keyword || '', 
-        parseInt(limit)
-      );
+      // 파이썬 테스트와 동일한 방식으로 API 호출 구성
+      const baseUrl = 'http://apis.data.go.kr/B551011/KorService2/searchFestival2';
       
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(performances)
-      };
-    } catch (aiError) {
-      console.error('AI 생성 오류:', aiError);
+      // 파라미터 구성 (URL에 직접 추가할 쿼리스트링)
+      let queryParams = [
+        `serviceKey=${TOUR_API_KEY}`, // 이미 인코딩된 키 사용
+        `MobileOS=ETC`,
+        `MobileApp=FestivalChecker`,  // 파이썬 테스트와 동일한 앱 이름
+        `eventStartDate=${formattedStartDate || today}`, // 시작일이 있으면 사용, 없으면 오늘 날짜 사용
+        `pageNo=${page}`,
+        `numOfRows=${limit}`,
+        `arrange=A`,
+        `_type=json`
+      ];
       
-      // AI 생성 실패 시 샘플 데이터 반환
-      const sampleData = generateSamplePerformances(region, genre, keyword);
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(sampleData)
-      };
+      // 종료일이 있는 경우 추가
+      if (formattedEndDate) {
+        queryParams.push(`eventEndDate=${formattedEndDate}`);
+      }
+      
+      // 지역 코드가 있는 경우 추가
+      if (regionCode) {
+        queryParams.push(`areaCode=${regionCode}`);
+      }
+      
+      // 키워드가 있는 경우 추가 (인코딩 필요)
+      if (keyword) {
+        queryParams.push(`keyword=${encodeURIComponent(keyword)}`);
+      }
+      
+      // 쿼리스트링 조합
+      const queryString = queryParams.join('&');
+      const fullUrl = `${baseUrl}?${queryString}`;
+      
+      console.log('API 요청 URL:', fullUrl);
+      
+      // API 호출 - axios로 직접 호출 (서버리스 함수에서는 CORS 제한 없음)
+      const response = await axios.get(fullUrl, {
+        timeout: 10000,
+        httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false })
+      });
+      
+      console.log('API 응답 상태:', response.status);
+      
+      // 응답 구조 확인 및 파싱
+      if (response.data && 
+          response.data.response && 
+          response.data.response.header &&
+          response.data.response.header.resultCode === '0000') { // 성공 코드 확인
+        
+        const body = response.data.response.body;
+        console.log('총 결과 수:', body?.totalCount || 0);
+        
+        if (body && body.items && body.items.item) {
+          // 결과 항목 처리
+          const items = body.items.item;
+          // 단일 항목 또는 배열 처리
+          const itemsArray = Array.isArray(items) ? items : [items];
+          
+          console.log(`${itemsArray.length}개의 결과 발견`);
+          
+          // API 응답 데이터를 애플리케이션 형식에 맞게 변환
+          const performances = itemsArray.map((item, index) => {
+            // 키워드 자동 추출
+            const extractedKeywords = extractKeywordsFromText(item.title, item.overview);
+            
+            return {
+              id: `tour-${item.contentid || index}`,
+              title: item.title || `행사 ${index + 1}`,
+              description: item.overview || `${item.title || '행사'}에 대한 상세 정보입니다.`,
+              type: genre || '축제/행사',
+              image: item.firstimage || "/assets/images/default-performance.png",
+              location: item.addr1 || '위치 정보 없음',
+              date: formatEventDate(item.eventstartdate, item.eventenddate),
+              price: estimatePrice(item.title, item.overview), // 가격 추정
+              region: getRegionName(item.areacode, item.sigungucode),
+              source: "한국관광공사",
+              link: `https://korean.visitkorea.or.kr/detail/ms_detail.do?cotid=${item.contentid}`,
+              tel: item.tel || '연락처 정보 없음',
+              keywords: extractedKeywords
+            };
+          });
+          
+          console.log('변환된 데이터 수:', performances.length);
+          
+          // 검색 통계 생성
+          const stats = generateSearchStats(performances);
+          
+          // 페이지네이션 정보 추가
+          const result = {
+            performances: performances,
+            pagination: {
+              currentPage: parseInt(page),
+              pageSize: parseInt(limit),
+              totalCount: body.totalCount || 0,
+              totalPages: Math.ceil((body.totalCount || 0) / parseInt(limit))
+            },
+            stats: stats
+          };
+          
+          // 성공 응답 반환
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify(result)
+          };
+        } else {
+          console.log('API 응답에 항목이 없음');
+        }
+      } else {
+        console.log('API 응답 오류 또는 실패:', 
+          response.data?.response?.header?.resultCode, 
+          response.data?.response?.header?.resultMsg);
+        console.log('응답 데이터 일부:', JSON.stringify(response.data).substring(0, 300) + '...');
+      }
+    } catch (apiError) {
+      console.error('API 호출 오류:', apiError.message);
+      if (apiError.response) {
+        console.error('API 오류 상태:', apiError.response.status);
+        console.error('API 오류 데이터:', JSON.stringify(apiError.response.data || {}).substring(0, 300));
+      } else if (apiError.request) {
+        console.error('API 요청은 보냈으나 응답 없음:', apiError.request);
+      } else {
+        console.error('API 요청 구성 중 오류:', apiError.message);
+      }
     }
     
-  } catch (error) {
-    console.error('공연 정보를 가져오는 중 오류:', error);
+    // API 호출 실패 시 샘플 데이터 반환
+    console.log('API 호출 실패, 샘플 데이터 반환');
+    const sampleData = generateSamplePerformances(region, genre, keyword);
+    
+    // 샘플 데이터에 키워드 추가
+    const enhancedSampleData = sampleData.map(item => {
+      if (!item.keywords) {
+        item.keywords = extractKeywordsFromText(item.title, item.description);
+      }
+      return item;
+    });
+    
+    // 검색 통계 생성
+    const sampleStats = generateSearchStats(enhancedSampleData);
+    
+    const result = {
+      performances: enhancedSampleData,
+      pagination: {
+        currentPage: parseInt(page),
+        pageSize: parseInt(limit),
+        totalCount: enhancedSampleData.length,
+        totalPages: Math.ceil(enhancedSampleData.length / parseInt(limit))
+      },
+      stats: sampleStats
+    };
     
     return {
-      statusCode: 500,
+      statusCode: 200,
       headers,
-      body: JSON.stringify({
-        error: '공연 정보를 가져오는 중 오류가 발생했습니다.',
-        details: error.message
-      })
+      body: JSON.stringify(result)
+    };
+    
+  } catch (error) {
+    console.error('함수 실행 중 오류:', error.message);
+    
+    // 오류 발생 시 샘플 데이터 반환
+    const sampleData = generateSamplePerformances();
+    
+    // 샘플 데이터에 키워드 추가
+    const enhancedSampleData = sampleData.map(item => {
+      if (!item.keywords) {
+        item.keywords = extractKeywordsFromText(item.title, item.description);
+      }
+      return item;
+    });
+    
+    // 검색 통계 생성
+    const sampleStats = generateSearchStats(enhancedSampleData);
+    
+    const result = {
+      performances: enhancedSampleData,
+      pagination: {
+        currentPage: 1,
+        pageSize: 9,
+        totalCount: enhancedSampleData.length,
+        totalPages: Math.ceil(enhancedSampleData.length / 9)
+      },
+      stats: sampleStats
+    };
+    
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify(result)
     };
   }
 };
 
-// OpenAI를 사용하여 현실적인 공연 데이터 생성
-async function generateRealisticPerformances(apiKey, region, genre, keyword, count = 30) {
-  try {
-    const configuration = new Configuration({
-      apiKey: apiKey,
-    });
-    const openai = new OpenAIApi(configuration);
-    
-    // 현재 날짜 기준 포맷팅
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth() + 1;
-    
-    // 지역에 따른 실제 공연장 예시 (더 현실적인 결과를 위해)
-    const venuesByRegion = {
-      '서울': ['예술의전당', '세종문화회관', '블루스퀘어', '올림픽공원 올림픽홀', '잠실 롯데콘서트홀', '국립중앙박물관', '동대문디자인플라자', 'LG아트센터', '홍익대 아트센터', '마포아트센터', '노들섬', '고척스카이돔', '연세대 백주년기념관', '이화여대 삼성홀', '서울시립미술관'],
-      '부산': ['부산문화회관', '영화의전당', '부산시민회관', '부산 KBS홀', '부산 벡스코', '부산 영화의전당', '부산 해운대문화회관'],
-      '대구': ['대구콘서트하우스', '대구 수성아트피아', '대구 오페라하우스', '대구 엑스코', '대구문화예술회관'],
-      '인천': ['인천문화예술회관', '인천 송도컨벤시아', '인천 부평아트센터', '인천 트라이보울'],
-      '광주': ['광주문화예술회관', '광주 김대중컨벤션센터', '광주시립미술관', '빛고을시민문화관'],
-      '대전': ['대전예술의전당', '대전시립미술관', '대전시립연정국악원', '대전 한밭대학교 아트홀'],
-      '울산': ['울산문화예술회관', '울산 현대예술관', '울산 태화강국제회의실'],
-      '경기': ['고양 아람누리', '성남아트센터', '안산문화예술의전당', '수원 경기아트센터', '경기도문화의전당', '의정부 예술의전당'],
-      '강원': ['강릉 아트센터', '춘천문화예술회관', '원주 백운아트홀', '강원도립극장'],
-      '충청': ['청주예술의전당', '천안예술의전당', '충주시문화회관', '공주문예회관'],
-      '전라': ['전주 한국소리문화의전당', '광주문화예술회관', '목포문화예술회관', '여수예울마루'],
-      '경상': ['창원 성산아트홀', '구미문화예술회관', '진주 경남문화예술회관', '거제문화예술회관'],
-      '제주': ['제주아트센터', '서귀포예술의전당', '제주문예회관']
-    };
-    
-    // 선택된 지역의 공연장, 또는 전국인 경우 모든 공연장
-    const venues = region === '전국' 
-      ? Object.values(venuesByRegion).flat() 
-      : (venuesByRegion[region] || Object.values(venuesByRegion).flat());
-    
-    // 장르별 공연 유형 (더 현실적인 결과를 위해)
-    const typesByGenre = {
-      '뮤지컬': ['뮤지컬', '창작뮤지컬', '라이선스 뮤지컬', '가족뮤지컬', '청소년뮤지컬'],
-      '연극': ['연극', '창작극', '현대극', '코미디극', '가족극', '마당극'],
-      '콘서트': ['콘서트', '록 콘서트', '재즈 콘서트', '팝 콘서트', '힙합 콘서트', '싱어송라이터 공연'],
-      '클래식': ['클래식', '오케스트라', '실내악', '피아노 리사이틀', '바이올린 협연', '오페라', '교향악'],
-      '무용': ['무용', '발레', '현대무용', '한국무용', '컨템포러리 댄스', '댄스 퍼포먼스'],
-      '국악': ['국악', '판소리', '가야금', '대금', '사물놀이', '창극', '퓨전국악'],
-      '전시': ['전시', '미술전', '사진전', '특별전', '기획전', '회고전', '미디어아트전'],
-      '축제': ['축제', '문화축제', '예술축제', '음악축제', '거리축제', '지역축제']
-    };
-    
-    // 선택된 장르의 공연 유형, 또는 전체인 경우 모든 유형
-    const types = genre === '전체' 
-      ? Object.values(typesByGenre).flat() 
-      : (typesByGenre[genre] || Object.values(typesByGenre).flat());
-      
-    // 프롬프트 생성
-    let prompt = `현재 한국에서 진행 중이거나 예정된 실제 공연/전시/축제 정보를 JSON 형태로 ${count}개 생성해주세요.
-
-요청 조건:
-- 지역: ${region}
-- 장르: ${genre}
-${keyword ? `- 키워드: ${keyword}` : ''}
-
-응답은 다음과 같은 JSON 배열 형식이어야 합니다:
-[
-  {
-    "id": "ai-1",  // 순차적으로 번호 매기기
-    "title": "공연 제목", // 현실적이고 다양한 제목
-    "description": "공연에 대한 구체적인 설명 (내용, 출연진, 특징 등)",
-    "type": "공연 장르", // ${types.slice(0, 5).join(', ')} 등
-    "image": "/assets/images/default-performance.png", // 이 값 그대로 사용
-    "location": "공연 장소", // ${venues.slice(0, 5).join(', ')} 등 실제 공연장
-    "date": "2025-MM-DD ~ 2025-MM-DD", // 현실적인 공연 기간 (1일~3개월)
-    "price": "가격 정보", // 현실적인 티켓 가격 (0원~200,000원)
-    "region": "지역명", // 서울, 부산, 제주 등 구체적 지역명
-    "source": "AI 검색", // 이 값 그대로 사용
-    "link": "#", // 이 값 그대로 사용
-    "keywords": ["관련", "키워드", "태그"] // 5개 내외의 관련 키워드
-  }
-]
-
-중요 사항:
-1. 실제로 존재할 법한 공연 정보를 생성해주세요.
-2. 모든 공연은 ${year}년 ${month}월부터 ${month+6}월 사이의 날짜를 가져야 합니다.
-3. 공연 제목과 설명은 창의적이고 구체적이어야 합니다.
-4. 각 공연 정보는 완전히 다르고 다양해야 합니다.
-5. 지역과 장르에 맞는 현실적인 공연장과 가격을 설정해주세요.
-6. 키워드가 주어진 경우 해당 키워드를 반영한 공연을 생성해주세요.
-7. 시작일과 종료일은 YYYY-MM-DD 형식을 사용해주세요.
-
-응답은 반드시 유효한 JSON 배열 형식이어야 합니다.`;
-
-    // OpenAI API 호출
-    const response = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {role: "system", content: "한국의 공연 정보 전문가로서 현실적이고 다양한 공연 정보를 생성합니다."},
-        {role: "user", content: prompt}
-      ],
-      temperature: 0.8,
-      max_tokens: 3000
-    });
-    
-    // 응답에서 JSON 추출
-    const content = response.data.choices[0].message.content;
-    
-    try {
-      // JSON 문자열 추출 (마크다운 블록 등이 있을 경우 처리)
-      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/```\n([\s\S]*?)\n```/) || [null, content];
-      const jsonStr = jsonMatch[1] || content;
-      let performances = JSON.parse(jsonStr);
-      
-      // 누락된 필드 처리 및 형식 통일
-      performances = performances.map((perf, index) => ({
-        id: `ai-${index + 1}`,
-        title: perf.title || `공연 ${index + 1}`,
-        description: perf.description || `${perf.title || '공연'} 정보`,
-        type: perf.type || (genre !== '전체' ? genre : '공연'),
-        image: "/assets/images/default-performance.png",
-        location: perf.location || venues[Math.floor(Math.random() * venues.length)],
-        date: perf.date || `2025-${month.toString().padStart(2, '0')}-01 ~ 2025-${(month+1).toString().padStart(2, '0')}-01`,
-        price: perf.price || `${Math.floor(Math.random() * 10) * 10000}원 ~ ${Math.floor(Math.random() * 10 + 10) * 10000}원`,
-        region: perf.region || region,
-        source: "AI 검색",
-        link: "#",
-        keywords: perf.keywords || [perf.type, perf.region, keyword].filter(Boolean)
-      }));
-      
-      return performances;
-    } catch (error) {
-      console.error("AI 응답 JSON 파싱 오류:", error);
-      console.log("원본 내용:", content);
-      throw new Error("AI 응답을 파싱할 수 없습니다");
-    }
-  } catch (error) {
-    console.error("OpenAI API 호출 중 오류:", error);
-    throw error;
-  }
-}
-
-// 샘플 공연 데이터 생성 함수 (API 호출 실패 시 대체용)
-function generateSamplePerformances(region, genre, keyword) {
-  // 기본 샘플 데이터 (지역별로 구분)
-  const samplePerformancesByRegion = {
-    '서울': [
-      {
-        id: 'sample-seoul-1',
-        title: "봄날의 재즈 콘서트",
-        description: "서울의 봄을 맞이하는 특별한 재즈 공연",
-        type: "콘서트",
-        image: "/assets/images/default-performance.png",
-        location: "서울 예술의전당",
-        date: "2025-05-15 ~ 2025-05-16",
-        price: "30,000원 ~ 80,000원",
-        region: "서울",
-        keywords: ["재즈", "음악", "서울", "봄", "콘서트"],
-        source: "샘플 데이터",
-        link: "#"
-      },
-      {
-        id: 'sample-seoul-2',
-        title: "국악과 현대음악의 만남",
-        description: "전통과 현대가 어우러진 특별한 국악 공연",
-        type: "국악",
-        image: "/assets/images/default-performance.png",
-        location: "국립국악원",
-        date: "2025-05-20 ~ 2025-05-25",
-        price: "20,000원 ~ 40,000원",
-        region: "서울",
-        keywords: ["국악", "전통", "현대음악", "서울", "퓨전", "가족"],
-        source: "샘플 데이터",
-        link: "#"
-      },
-      {
-        id: 'sample-seoul-3',
-        title: "서울재즈페스티벌 2025",
-        description: "국내외 정상급 재즈 뮤지션들의 공연",
-        type: "콘서트",
-        image: "/assets/images/default-performance.png",
-        location: "올림픽공원",
-        date: "2025-05-23 ~ 2025-05-25",
-        price: "120,000원",
-        region: "서울",
-        keywords: ["재즈", "페스티벌", "음악축제", "올림픽공원", "봄"],
-        source: "샘플 데이터",
-        link: "#"
-      }
-    ],
-    '부산': [
-      {
-        id: 'sample-busan-1',
-        title: "오페라의 유령",
-        description: "전 세계적으로 사랑받는 클래식 뮤지컬",
-        type: "뮤지컬",
-        image: "/assets/images/default-performance.png",
-        location: "부산 드림씨어터",
-        date: "2025-06-10 ~ 2025-07-15",
-        price: "50,000원 ~ 150,000원",
-        region: "부산",
-        keywords: ["뮤지컬", "클래식", "오페라", "부산"],
-        source: "샘플 데이터",
-        link: "#"
-      },
-      {
-        id: 'sample-busan-2',
-        title: "부산국제영화제",
-        description: "아시아 최대 규모의 국제 영화 축제",
-        type: "영화제",
-        image: "/assets/images/default-performance.png",
-        location: "부산 영화의전당",
-        date: "2025-10-01 ~ 2025-10-10",
-        price: "10,000원 ~ 15,000원",
-        region: "부산",
-        keywords: ["영화제", "국제", "영화", "부산", "축제", "BIFF"],
-        source: "샘플 데이터",
-        link: "#"
-      }
-    ],
-    '제주': [
-      {
-        id: 'sample-jeju-1',
-        title: "제주 봄 축제",
-        description: "제주의 자연과 함께하는 음악 축제",
-        type: "축제",
-        image: "/assets/images/default-performance.png",
-        location: "제주 평화공원",
-        date: "2025-05-01 ~ 2025-05-05",
-        price: "무료",
-        region: "제주",
-        keywords: ["축제", "제주", "봄", "음악", "자연", "가족", "아이"],
-        source: "샘플 데이터",
-        link: "#"
-      }
-    ],
-    '대구': [
-      {
-        id: 'sample-daegu-1',
-        title: "현대미술 특별전",
-        description: "국내 유명 작가들의 현대미술 작품 전시",
-        type: "전시",
-        image: "/assets/images/default-performance.png",
-        location: "대구 미술관",
-        date: "2025-04-20 ~ 2025-06-20",
-        price: "15,000원",
-        region: "대구",
-        keywords: ["전시", "미술", "현대미술", "대구", "작가", "예술"],
-        source: "샘플 데이터",
-        link: "#"
-      }
-    ],
-    '광주': [
-      {
-        id: 'sample-gwangju-1',
-        title: "거리예술축제 '도시의 꿈'",
-        description: "도심 곳곳에서 펼쳐지는 다양한 거리공연",
-        type: "축제",
-        image: "/assets/images/default-performance.png",
-        location: "광주 금남로 일대",
-        date: "2025-05-25 ~ 2025-05-26",
-        price: "무료",
-        region: "광주",
-        keywords: ["거리예술", "축제", "거리공연", "도시", "금남로"],
-        source: "샘플 데이터",
-        link: "#"
-      },
-      {
-        id: 'sample-gwangju-2',
-        title: "현대 미술 비엔날레",
-        description: "국내외 현대 미술의 현재와 미래를 모색하는 예술제",
-        type: "전시",
-        image: "/assets/images/default-performance.png",
-        location: "광주 비엔날레 전시관",
-        date: "2025-09-05 ~ 2025-11-10",
-        price: "17,000원",
-        region: "광주",
-        keywords: ["비엔날레", "현대미술", "예술", "국제", "전시"],
-        source: "샘플 데이터",
-        link: "#"
-      }
-    ],
-    '경기': [
-      {
-        id: 'sample-gyeonggi-1',
-        title: "가족과 함께하는 아이스쇼",
-        description: "어린이를 위한 신나는 아이스쇼",
-        type: "공연",
-        image: "/assets/images/default-performance.png",
-        location: "고양 아람누리",
-        date: "2025-05-05 ~ 2025-05-05",
-        price: "25,000원 ~ 45,000원",
-        region: "경기",
-        keywords: ["아이스쇼", "가족", "어린이", "어린이날", "아이"],
-        source: "샘플 데이터",
-        link: "#"
-      },
-      {
-        id: 'sample-gyeonggi-2',
-        title: "어린이 체험전 '공룡의 세계'",
-        description: "어린이를 위한 공룡 테마 체험 전시",
-        type: "전시",
-        image: "/assets/images/default-performance.png",
-        location: "일산 킨텍스",
-        date: "2025-07-01 ~ 2025-08-31",
-        price: "18,000원",
-        region: "경기",
-        keywords: ["공룡", "어린이", "체험", "전시", "가족", "방학"],
-        source: "샘플 데이터",
-        link: "#"
-      }
-    ]
+// 텍스트에서 키워드 추출 함수
+function extractKeywordsFromText(title = '', description = '') {
+  // 추출할 텍스트 조합
+  const text = `${title} ${description || ''}`.toLowerCase();
+  
+  // 키워드 후보 목록 (행사 유형, 테마, 계절 등)
+  const keywordCategories = {
+    eventTypes: ['축제', '공연', '전시', '박람회', '체험', '문화행사', '콘서트', '마켓', '페스티벌'],
+    themes: ['음식', '문화', '예술', '역사', '전통', '음악', '댄스', '체험', '가족', '아동', '어린이'],
+    seasons: ['봄', '여름', '가을', '겨울', '계절'],
+    activities: ['체험', '관람', '참여', '학습', '교육', '놀이'],
+    places: ['공원', '광장', '거리', '마을', '도시', '산', '강', '바다', '호수'],
+    specialties: ['커피', '김밥', '국악', '공룡', '단오', '숲길', '반려동물', '다문화']
   };
   
-  // 모든 지역의 공연 정보 합치기
-  let allPerformances = Object.values(samplePerformancesByRegion).flat();
+  // 추출된 키워드 저장
+  const extractedKeywords = [];
   
-  // 필터링 적용
-  if (region && region !== '전국') {
-    allPerformances = allPerformances.filter(performance => 
-      performance.region === region
-    );
+  // 각 카테고리별 키워드 확인
+  Object.values(keywordCategories).forEach(category => {
+    category.forEach(keyword => {
+      if (text.includes(keyword)) {
+        extractedKeywords.push(keyword);
+      }
+    });
+  });
+  
+  // 제목에서 특수한 단어 추출 (2글자 이상)
+  const specialWords = title.match(/[가-힣]{2,}/g) || [];
+  specialWords.forEach(word => {
+    // 기본 키워드나 일반적인 단어가 아닌 경우만 추가
+    if (!extractedKeywords.includes(word) && 
+        !['행사', '축제', '페스티벌', '전시', '공연', '문화', '예술'].includes(word)) {
+      extractedKeywords.push(word);
+    }
+  });
+  
+  // 중복 제거 및 최대 3개 제한
+  return [...new Set(extractedKeywords)].slice(0, 3);
+}
+
+// 가격 추정 함수
+function estimatePrice(title = '', description = '') {
+  const text = `${title} ${description || ''}`.toLowerCase();
+  
+  // 무료로 추정할 수 있는 키워드
+  const freeKeywords = ['무료', '자유', '자유입장', '오픈'];
+  
+  // 유료로 추정할 수 있는 키워드
+  const paidKeywords = ['입장권', '티켓', '예매', '입장료', '관람료'];
+  
+  // 무료 키워드가 있는 경우
+  if (freeKeywords.some(keyword => text.includes(keyword))) {
+    return '무료(추정)';
   }
   
-  // 장르 필터
-  if (genre && genre !== '전체') {
-    allPerformances = allPerformances.filter(performance => 
-      performance.type === genre
-    );
+  // 유료 키워드가 있는 경우
+  if (paidKeywords.some(keyword => text.includes(keyword))) {
+    return '유료(추정)';
   }
   
-  // 키워드 필터
+  // 대부분의 지역 축제는 무료일 가능성이 높음
+  if (text.includes('축제') || text.includes('페스티벌')) {
+    return '무료(추정)';
+  }
+  
+  // 기본 값
+  return '가격 정보 없음';
+}
+
+// 검색 통계 생성 함수
+function generateSearchStats(performances) {
+  if (!performances || performances.length === 0) {
+    return {
+      total: 0,
+      regions: 0,
+      types: 0,
+      currentMonth: 0
+    };
+  }
+  
+  // 지역 수
+  const uniqueRegions = new Set();
+  // 공연 유형 수
+  const uniqueTypes = new Set();
+  // 이번 달 공연 수
+  let currentMonthCount = 0;
+  
+  // 현재 년월
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  
+  performances.forEach(performance => {
+    // 지역 카운트
+    if (performance.region) {
+      uniqueRegions.add(performance.region);
+    }
+    
+    // 공연 유형 카운트
+    if (performance.type) {
+      uniqueTypes.add(performance.type);
+    }
+    
+    // 이번 달 공연 카운트
+    if (performance.date) {
+      const dateMatch = performance.date.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (dateMatch) {
+        const perfYear = parseInt(dateMatch[1]);
+        const perfMonth = parseInt(dateMatch[2]);
+        
+        if (perfYear === currentYear && perfMonth === currentMonth) {
+          currentMonthCount++;
+        }
+      }
+    }
+  });
+  
+  return {
+    total: performances.length,
+    regions: uniqueRegions.size,
+    types: uniqueTypes.size,
+    currentMonth: currentMonthCount
+  };
+}
+
+// 이벤트 날짜 형식화
+function formatEventDate(startDate, endDate) {
+  if (!startDate) return '날짜 정보 없음';
+  
+  // YYYYMMDD 형식을 YYYY-MM-DD로 변환
+  const formatDate = (dateStr) => {
+    if (!dateStr || dateStr.length !== 8) return '';
+    return `${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}`;
+  };
+  
+  const formattedStart = formatDate(startDate);
+  const formattedEnd = formatDate(endDate);
+  
+  if (formattedStart && formattedEnd) {
+    return `${formattedStart} ~ ${formattedEnd}`;
+  }
+  
+  return formattedStart || '날짜 정보 없음';
+}
+
+// 지역 코드 변환 함수
+function getRegionCode(region) {
+  if (!region) return null;
+  
+  const regionCodes = {
+    '서울': 1,
+    '인천': 2,
+    '대전': 3,
+    '대구': 4,
+    '광주': 5,
+    '부산': 6,
+    '울산': 7,
+    '세종': 8,
+    '경기': 31,
+    '강원': 32,
+    '충북': 33,
+    '충청': 33, // 충북과 동일하게 처리
+    '충남': 34,
+    '경북': 35,
+    '경상': 35, // 경북과 동일하게 처리
+    '경남': 36,
+    '전북': 37,
+    '전라': 37, // 전북과 동일하게 처리
+    '전남': 38,
+    '제주': 39
+  };
+  
+  return regionCodes[region];
+}
+
+// 지역 이름 생성 함수
+function getRegionName(areaCode, sigunguCode) {
+  const areaNames = {
+    1: '서울',
+    2: '인천',
+    3: '대전',
+    4: '대구',
+    5: '광주',
+    6: '부산',
+    7: '울산',
+    8: '세종',
+    31: '경기도',
+    32: '강원도',
+    33: '충청북도',
+    34: '충청남도',
+    35: '경상북도',
+    36: '경상남도',
+    37: '전라북도',
+    38: '전라남도',
+    39: '제주도'
+  };
+  
+  return areaCode ? (areaNames[areaCode] || '기타 지역') : '전국';
+}
+
+// 샘플 공연 데이터 생성 (API 호출 실패 시 대체용)
+function generateSamplePerformances(region, genre, keyword) {
+  // 샘플 데이터 배열
+  const samplePerformances = [
+    {
+      id: 'sample-1',
+      title: "가평군 반려동물 문화행사 활짝펫",
+      description: "반려동물과 함께하는 다양한 체험 행사와 공연이 준비되어 있습니다.",
+      type: "축제",
+      image: "http://tong.visitkorea.or.kr/cms/resource/40/3490940_image2_1.jpg",
+      location: "경기도 가평군 가평읍 자라섬로 60",
+      date: "2025-06-07 ~ 2025-06-07",
+      price: "무료(추정)",
+      region: "경기도",
+      tel: "070-8233-0333",
+      source: "샘플 데이터",
+      link: "#",
+      keywords: ["반려동물", "체험", "가족"]
+    },
+    {
+      id: 'sample-2',
+      title: "강릉단오제",
+      description: "우리나라를 대표하는 전통 문화축제로, 강릉의 역사와 문화를 체험할 수 있는 다양한 행사가 열립니다.",
+      type: "축제",
+      image: "http://tong.visitkorea.or.kr/cms/resource/54/3484354_image2_1.jpg",
+      location: "강원특별자치도 강릉시 단오장길 1",
+      date: "2025-05-27 ~ 2025-06-03",
+      price: "무료(추정)",
+      region: "강원도",
+      tel: "033-641-1593",
+      source: "샘플 데이터",
+      link: "#",
+      keywords: ["전통", "문화", "단오"]
+    },
+    {
+      id: 'sample-3',
+      title: "강릉커피축제",
+      description: "국내 최고의 커피 명소 강릉에서 열리는 커피 축제로, 다양한 커피를 맛볼 수 있고 바리스타 경연대회 등이 열립니다.",
+      type: "축제",
+      image: "http://tong.visitkorea.or.kr/cms/resource/26/3370626_image2_1.jpg",
+      location: "강원특별자치도 강릉시 창해로14번길 20-1 (견소동)",
+      date: "2025-10-23 ~ 2025-10-26",
+      price: "무료(추정)",
+      region: "강원도",
+      tel: "033-647-6802",
+      source: "샘플 데이터",
+      link: "#",
+      keywords: ["커피", "음식", "체험"]
+    },
+    {
+      id: 'sample-4',
+      title: "강서 아이들 까치까치 페스티벌",
+      description: "어린이들을 위한 다양한 체험과, 공연이 펼쳐지는 축제입니다.",
+      type: "축제",
+      image: "http://tong.visitkorea.or.kr/cms/resource/73/3489673_image2_1.JPG",
+      location: "서울특별시 강서구 우장산로 66 (내발산동)",
+      date: "2025-05-24 ~ 2025-05-24",
+      price: "무료(추정)",
+      region: "서울",
+      tel: "02-2600-6970",
+      source: "샘플 데이터",
+      link: "#",
+      keywords: ["아동", "체험", "가족"]
+    },
+    {
+      id: 'sample-5',
+      title: "강서구 다문화축제",
+      description: "다양한 문화를 체험하고 즐길 수 있는 다문화 축제입니다.",
+      type: "축제",
+      image: "http://tong.visitkorea.or.kr/cms/resource/01/3489701_image2_1.jpg",
+      location: "서울특별시 강서구 강서로5길 50 (화곡동)",
+      date: "2025-05-24 ~ 2025-05-24",
+      price: "무료(추정)",
+      region: "서울",
+      tel: "02-2600-6763",
+      source: "샘플 데이터",
+      link: "#",
+      keywords: ["다문화", "체험", "문화"]
+    },
+    {
+      id: 'sample-6',
+      title: "경기미 김밥페스타",
+      description: "경기미를 활용한 다양한 김밥을 맛볼 수 있는 음식 축제입니다.",
+      type: "축제",
+      image: "http://tong.visitkorea.or.kr/cms/resource/23/3486723_image2_1.jpg",
+      location: "경기도 수원시 영통구 광교중앙로 140 (하동) 수원컨벤션센터 제2전시장",
+      date: "2025-06-21 ~ 2025-06-21",
+      price: "무료(추정)",
+      region: "경기도",
+      tel: "031-774-3312",
+      source: "샘플 데이터",
+      link: "#",
+      keywords: ["김밥", "음식", "체험"]
+    },
+    {
+      id: 'sample-7',
+      title: "경남고성공룡세계엑스포",
+      description: "공룡 화석지로 유명한 고성에서 개최되는 공룡 테마 엑스포입니다.",
+      type: "전시",
+      image: "http://tong.visitkorea.or.kr/cms/resource/62/2987562_image2_1.png",
+      location: "경상남도 고성군 당항만로 1116 당항포관광지",
+      date: "2025-10-01 ~ 2025-11-09",
+      price: "유료(추정)",
+      region: "경상남도",
+      tel: "055-670-7400",
+      source: "샘플 데이터",
+      link: "#",
+      keywords: ["공룡", "체험", "가족"]
+    },
+    {
+      id: 'sample-8',
+      title: "경복궁 생과방",
+      description: "경복궁에서 진행되는 전통 간식을 체험할 수 있는 문화 행사입니다.",
+      type: "체험",
+      image: "http://tong.visitkorea.or.kr/cms/resource/99/2962999_image2_1.jpg",
+      location: "서울특별시 종로구 사직로 161 (세종로)",
+      date: "2025-04-16 ~ 2025-06-23",
+      price: "유료(추정)",
+      region: "서울",
+      tel: "1522-2295",
+      source: "샘플 데이터",
+      link: "#",
+      keywords: ["전통", "음식", "체험"]
+    },
+    {
+      id: 'sample-9',
+      title: "경산자인단오제",
+      description: "전통 단오제를 현대적으로 재해석한 지역 축제입니다.",
+      type: "축제",
+      image: "http://tong.visitkorea.or.kr/cms/resource/99/2718299_image2_1.jpg",
+      location: "경상북도 경산시 자인면 계정길 68 계정숲",
+      date: "2025-05-30 ~ 2025-06-01",
+      price: "무료(추정)",
+      region: "경상북도",
+      tel: "053-856-5765",
+      source: "샘플 데이터",
+      link: "#",
+      keywords: ["단오", "전통", "체험"]
+    },
+    {
+      id: 'sample-10',
+      title: "경춘선 공릉숲길 커피축제",
+      description: "공릉숲길에서 펼쳐지는 커피 축제로, 다양한 커피를 맛보고 문화 공연을 즐길 수 있습니다.",
+      type: "축제",
+      image: "http://tong.visitkorea.or.kr/cms/resource/14/3490514_image2_1.jpg",
+      location: "서울특별시 노원구 동일로 지하1074 (공릉동) 공릉역 2번 출구 일대",
+      date: "2025-06-07 ~ 2025-06-08",
+      price: "무료(추정)",
+      region: "서울",
+      tel: "02-976-9110",
+      source: "샘플 데이터",
+      link: "#",
+      keywords: ["커피", "음식", "문화"]
+    }
+  ];
+
+  // 필터링 적용 (지역, 장르, 키워드)
+  let filteredSamples = [...samplePerformances];
+  
+  if (region) {
+    filteredSamples = filteredSamples.filter(item => item.region.includes(region));
+  }
+  
+  if (genre) {
+    filteredSamples = filteredSamples.filter(item => item.type === genre);
+  }
+  
   if (keyword) {
     const searchTerm = keyword.toLowerCase();
-    allPerformances = allPerformances.filter(performance => {
-      // 키워드 배열에서 검색
-      if (performance.keywords && performance.keywords.some(k => k.toLowerCase().includes(searchTerm))) {
-        return true;
-      }
-      
-      // 다른 필드에서 검색
-      const searchableText = [
-        performance.title || '',
-        performance.description || '',
-        performance.type || '',
-        performance.location || '',
-        performance.region || ''
-      ].join(' ').toLowerCase();
-      
-      return searchableText.includes(searchTerm);
-    });
+    filteredSamples = filteredSamples.filter(item => 
+      item.title.toLowerCase().includes(searchTerm) || 
+      item.description.toLowerCase().includes(searchTerm) ||
+      (item.keywords && item.keywords.some(k => k.toLowerCase().includes(searchTerm)))
+    );
   }
   
-  // 결과가 없으면 전체 데이터 반환
-  if (allPerformances.length === 0) {
-    return Object.values(samplePerformancesByRegion).flat();
-  }
-  
-  return allPerformances;
+  // 필터링 결과가 없으면 전체 데이터 반환
+  return filteredSamples.length > 0 ? filteredSamples : samplePerformances;
 }

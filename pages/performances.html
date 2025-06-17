@@ -39,6 +39,73 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             min-width: 300px;
         }
+        .source-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            opacity: 0.8;
+        }
+        #load-more-btn {
+            transition: all 0.3s ease;
+        }
+        #load-more-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .card-img-top {
+            transition: transform 0.5s ease;
+        }
+        .card-img-top:hover {
+            transform: scale(1.05);
+        }
+        .tag-badge {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .tag-badge:hover {
+            background-color: #e9ecef !important;
+            transform: translateY(-2px);
+        }
+        .active-tag {
+            background-color: #0d6efd !important;
+            color: white !important;
+        }
+        .quick-date-btn {
+            font-size: 0.85rem;
+            padding: 0.25rem 0.5rem;
+            margin-right: 0.5rem;
+        }
+        .quick-date-btn.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .keyword-tag {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .keyword-tag:hover {
+            background-color: #0d6efd !important;
+            color: white !important;
+        }
+        .stats-container {
+            background-color: #f8f9fa;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .stats-item {
+            text-align: center;
+            padding: 0.5rem;
+        }
+        .stats-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #0d6efd;
+        }
+        .stats-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
     </style>
 </head>
 <body>
@@ -75,7 +142,7 @@
         <section class="page-header">
             <div class="container">
                 <h1>공연 정보</h1>
-                <p class="lead">전국의 다양한 공연 정보를 찾아보세요.</p>
+                <p class="lead">전국의 다양한 공연 및 축제 정보를 찾아보세요.</p>
             </div>
         </section>
 
@@ -86,7 +153,7 @@
                         <h5 class="card-title mb-3">검색 필터</h5>
                         <form id="performance-filter-form">
                             <div class="row g-3">
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="region" class="form-label">지역</label>
                                     <select class="form-select" id="region">
                                         <option value="">전체 지역</option>
@@ -105,7 +172,7 @@
                                         <option value="제주">제주도</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="performance-type" class="form-label">공연 유형</label>
                                     <select class="form-select" id="performance-type">
                                         <option value="">모든 유형</option>
@@ -119,7 +186,22 @@
                                         <option value="국악">국악</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4 d-flex align-items-end">
+                                <div class="col-md-4">
+                                    <label for="date-range" class="form-label">공연 기간</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="date-range" placeholder="날짜 범위 선택">
+                                        <button class="btn btn-outline-secondary" type="button" id="clear-date">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div class="mt-2 d-flex">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary quick-date-btn" data-period="today">오늘</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary quick-date-btn" data-period="tomorrow">내일</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary quick-date-btn" data-period="weekend">이번 주말</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary quick-date-btn" data-period="week">이번 주</button>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
                                     <button type="submit" class="btn btn-primary w-100">
                                         <i class="fas fa-search me-2"></i>검색
                                     </button>
@@ -160,9 +242,67 @@
             </div>
         </section>
 
+        <!-- 인기 태그 섹션 -->
+        <section class="popular-tags py-3">
+            <div class="container">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">인기 태그로 찾기</h5>
+                    <button class="btn btn-sm btn-outline-secondary" id="refresh-tags">
+                        <i class="fas fa-sync-alt me-1"></i> 새로고침
+                    </button>
+                </div>
+                <div id="tags-container" class="mb-3">
+                    <span class="badge rounded-pill bg-light text-dark me-2 mb-2 py-2 px-3 tag-badge" data-tag="축제">축제</span>
+                    <span class="badge rounded-pill bg-light text-dark me-2 mb-2 py-2 px-3 tag-badge" data-tag="음악">음악</span>
+                    <span class="badge rounded-pill bg-light text-dark me-2 mb-2 py-2 px-3 tag-badge" data-tag="전통">전통</span>
+                    <span class="badge rounded-pill bg-light text-dark me-2 mb-2 py-2 px-3 tag-badge" data-tag="체험">체험</span>
+                    <span class="badge rounded-pill bg-light text-dark me-2 mb-2 py-2 px-3 tag-badge" data-tag="가족">가족</span>
+                    <span class="badge rounded-pill bg-light text-dark me-2 mb-2 py-2 px-3 tag-badge" data-tag="봄">봄</span>
+                    <span class="badge rounded-pill bg-light text-dark me-2 mb-2 py-2 px-3 tag-badge" data-tag="커피">커피</span>
+                    <span class="badge rounded-pill bg-light text-dark me-2 mb-2 py-2 px-3 tag-badge" data-tag="반려동물">반려동물</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 공연 목록 섹션 -->
         <section class="performances-list py-4">
             <div class="container">
-                <h2 class="mb-4">추천 공연 및 문화 행사</h2>
+                <!-- 검색 결과 요약 및 정렬 옵션 -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="mb-0">공연 및 축제 목록</h2>
+                    <div class="d-flex align-items-center">
+                        <label for="sort-by" class="me-2 text-nowrap">정렬:</label>
+                        <select class="form-select form-select-sm" id="sort-by" style="width: 150px;">
+                            <option value="date_asc">날짜 빠른순</option>
+                            <option value="date_desc">날짜 늦은순</option>
+                            <option value="title_asc">이름 가나다순</option>
+                            <option value="title_desc">이름 역순</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 검색 통계 표시 -->
+                <div class="stats-container mb-4 d-none" id="search-stats">
+                    <div class="row">
+                        <div class="col-md-3 stats-item">
+                            <div class="stats-number" id="stats-total">0</div>
+                            <div class="stats-label">총 공연 수</div>
+                        </div>
+                        <div class="col-md-3 stats-item">
+                            <div class="stats-number" id="stats-regions">0</div>
+                            <div class="stats-label">지역 수</div>
+                        </div>
+                        <div class="col-md-3 stats-item">
+                            <div class="stats-number" id="stats-types">0</div>
+                            <div class="stats-label">공연 유형</div>
+                        </div>
+                        <div class="col-md-3 stats-item">
+                            <div class="stats-number" id="stats-month">0</div>
+                            <div class="stats-label">이번 달 공연</div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="row" id="performances-container">
                     <!-- 여기에 공연 정보가 동적으로 추가됩니다 -->
                     <div class="col-12 text-center py-5">
@@ -170,6 +310,19 @@
                             <span class="visually-hidden">Loading...</span>
                         </div>
                         <p class="mt-3">공연 정보를 불러오는 중...</p>
+                    </div>
+                </div>
+                
+                <!-- 더 보기 버튼 -->
+                <div id="load-more-container" class="text-center my-4 d-none">
+                    <button id="load-more-btn" class="btn btn-outline-primary px-4 py-2">
+                        <i class="fas fa-plus-circle me-2"></i>더 많은 공연 보기
+                    </button>
+                    <div id="loading-more" class="d-none mt-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="ms-2">추가 공연 불러오는 중...</span>
                     </div>
                 </div>
             </div>
@@ -212,7 +365,7 @@
         </div>
     </div>
 
-    <footer class="bg-dark text-white py-4">
+<footer class="bg-dark text-white py-4">
         <div class="container">
             <div class="row">
                 <div class="col-md-6">
@@ -226,19 +379,25 @@
                         <li><a href="performances.html" class="text-white">공연 정보</a></li>
                         <li><a href="routes.html" class="text-white">여행 경로</a></li>
                         <li><a href="regions.html" class="text-white">지역별 정보</a></li>
+                        <li><a href="comics.html" class="text-white">시고르 4컷툰</a></li>
                     </ul>
                 </div>
                 <div class="col-md-3">
-                    <h5>연락처</h5>
+                    <address class="small">
+                        서울특별시 종로구 삼봉로 81, 409호<br>
+                        (수송동, 두산위브파빌리온)<br>
+                        우편번호 03150
+                    </address>
                     <ul class="list-unstyled">
-                        <li><i class="fas fa-envelope me-2"></i> info@naratour.com</li>
-                        <li><i class="fas fa-phone me-2"></i> 02-123-4567</li>
+                        <li><i class="fas fa-phone me-2"></i> TEL. 02-3141-7644</li>
+                        <li><i class="fas fa-fax me-2"></i> FAX. 02-3141-7602</li>
+                        <li><i class="fas fa-envelope me-2"></i> nara@narainformation.com</li>
                     </ul>
                 </div>
             </div>
             <hr>
             <div class="text-center">
-                <p>&copy; 2025 나라투어. 모든 권리 보유.</p>
+                <p>&copy; 2025 (주)나라지식정보 Copyright.All rights reserved</p>
             </div>
         </div>
     </footer>

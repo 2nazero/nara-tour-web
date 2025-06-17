@@ -1,0 +1,29 @@
+{
+    "family": "naratour",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "256",
+    "memory": "512",
+    "executionRoleArn": "arn:aws:iam::418272793352:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
+        {
+            "name": "naratour",
+            "image": "418272793352.dkr.ecr.ap-northeast-2.amazonaws.com/naratour:latest",
+            "portMappings": [
+                {
+                    "containerPort": 80,
+                    "protocol": "tcp"
+                }
+            ],
+            "essential": true,
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/naratour",
+                    "awslogs-region": "ap-northeast-2",
+                    "awslogs-stream-prefix": "naratour"
+                }
+            }
+        }
+    ]
+}
