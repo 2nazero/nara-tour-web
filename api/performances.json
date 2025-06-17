@@ -1,0 +1,21 @@
+{
+  "data": [
+    {
+      "id": "tour-506465",
+      "title": "금산세계인삼축제",
+      "description": "금산세계인삼축제에 대한 상세 정보입니다.",
+      "type": "축제",
+      "image": "http://tong.visitkorea.or.kr/cms/resource/43/3378043_image2_1.JPG",
+      "location": "충청남도 금산군 금산읍 인삼광장로 30",
+      "date": "2025-09-19 ~ 2025-09-28",
+      "price": "무료(추정)",
+      "region": "충청남도",
+      "source": "한국관광공사",
+      "link": "https://korean.visitkorea.or.kr/detail/ms_detail.do?cotid=506465",
+      "tel": "041-750-2319",
+      "keywords": ["축제","산","금산세계인삼축제"]
+    }
+  ],
+  "total": 1,
+  "message": "공연 데이터 로드 완료"
+}

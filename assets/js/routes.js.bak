@@ -430,9 +430,9 @@ async function loadRecommendedPlaces(region, isLoadMore = false) {
         const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
         const preferredTypes = Array.from(checkboxes).map(checkbox => parseInt(checkbox.value));
         
-        console.log('API 호출:', `/api/mapdata.json?region=${encodeURIComponent(region)}`);
+        console.log('API 호출:', `/.netlify/functions/getMapData?region=${encodeURIComponent(region)}`);
         
-        const response = await fetch(`/api/mapdata.json?region=${encodeURIComponent(region)}`);
+        const response = await fetch(`/.netlify/functions/getMapData?region=${encodeURIComponent(region)}`);
         
         if (!response.ok) {
             throw new Error(`서버 응답 오류: ${response.status}`);

@@ -472,7 +472,7 @@ async function getAIRecommendations(region, genre, keyword) {
   
   try {
     // Netlify 함수 호출 
-    const response = await fetch('/api/recommendations.json', {
+    const response = await fetch('/.netlify/functions/recommendPerformances', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
