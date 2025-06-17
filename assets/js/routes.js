@@ -430,9 +430,9 @@ async function loadRecommendedPlaces(region, isLoadMore = false) {
         const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
         const preferredTypes = Array.from(checkboxes).map(checkbox => parseInt(checkbox.value));
         
-        console.log('API 호출:', `/api/mapdata.json?region=${encodeURIComponent(region)}`);
+        console.log('API 호출:', `https://gzfs7zdkmhsfxj37ahdxxujk2a0arajr.lambda-url.us-east-1.on.aws?region=${encodeURIComponent(region)}`);
         
-        const response = await fetch(`/api/mapdata.json?region=${encodeURIComponent(region)}`);
+        const response = await fetch(`https://gzfs7zdkmhsfxj37ahdxxujk2a0arajr.lambda-url.us-east-1.on.aws?region=${encodeURIComponent(region)}`);
         
         if (!response.ok) {
             throw new Error(`서버 응답 오류: ${response.status}`);
