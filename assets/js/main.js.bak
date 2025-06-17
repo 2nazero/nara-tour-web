@@ -44,7 +44,7 @@ async function loadJSONLFile(filePath) {
     }
     
     try {
-        const fullPath = `https://gzfs7zdkmhsfxj37ahdxxujk2a0arajr.lambda-url.us-east-1.on.aws`;
+        const fullPath = `/data/ml_filtered_master_tourist_only.jsonl`;
         console.log('데이터 로드 시도:', fullPath);
         
         const response = await fetch(fullPath);
