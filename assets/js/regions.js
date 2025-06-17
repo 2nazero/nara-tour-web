@@ -665,7 +665,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            const response = await fetch('/api/mapdata.json?loadType=all');
+            const response = await fetch('https://gzfs7zdkmhsfxj37ahdxxujk2a0arajr.lambda-url.us-east-1.on.aws?loadType=all');
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             const result = await response.json();
