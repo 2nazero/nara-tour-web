@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>투어캐미 광고</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .popup-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .popup-image {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            max-height: 400px;
+            object-fit: cover;
+        }
+        
+        .popup-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .popup-description {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        
+        .popup-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+            transform: translateY(-2px);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            color: #007bff;
+            border: 2px solid #007bff;
+        }
+        
+        .btn-outline:hover {
+            background: #007bff;
+            color: white;
+        }
+        
+        .close-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #17a2b8;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #dc3545;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 480px) {
+            .popup-container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .popup-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                min-width: auto;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="popup-container">
+        <!-- 이미지 표시 영역 -->
+        <div id="image-container">
+            <img id="popup-img" src="assets/images/pop-up/투어캐미_광고.png" alt="투어캐미 광고" class="popup-image" 
+                 onerror="handleImageError(this)" onload="handleImageLoad()">
+        </div>
+        
+        <!-- 이미지 로드 실패 시 보여줄 메시지 -->
+        <div id="error-container" style="display: none;">
+            <div class="error-message">
+                <strong>⚠️ 이미지를 불러올 수 없습니다.</strong><br>
+                이미지 파일 경로를 확인해주세요: <code>assets/images/pop-up/투어캐미_광고.png</code>
+            </div>
+        </div>
+        
+        <h2 class="popup-title">🎉 투어캐미 특별 혜택!</h2>
+        
+        <p class="popup-description">
+            새로운 여행 경험을 위한 특별한 혜택을 만나보세요.<br>
+            지금 바로 투어캐미 사이트를 방문해보세요!
+        </p>
+        
+        <div class="popup-buttons">
+            <a href="http://54.235.10.30" target="_blank" class="btn btn-primary" onclick="handleVisit()">
+                🌐 사이트 방문하기
+            </a>
+            <button onclick="handleCloseToday()" class="btn btn-secondary">
+                📅 오늘 다시 안보기
+            </button>
+            <button onclick="handleClose()" class="btn btn-outline">
+                ❌ 창 닫기
+            </button>
+        </div>
+        
+        <div class="close-info">
+            💡 <strong>안내:</strong> "오늘 다시 안보기"를 선택하면 24시간 동안 이 팝업이 표시되지 않습니다.
+        </div>
+    </div>
+
+    <script>
+        // 이미지 로드 성공
+        function handleImageLoad() {
+            console.log('이미지 로드 성공');
+            document.getElementById('error-container').style.display = 'none';
+        }
+        
+        // 이미지 로드 실패 처리
+        function handleImageError(img) {
+            console.error('이미지 로드 실패:', img.src);
+            document.getElementById('error-container').style.display = 'block';
+            img.style.display = 'none';
+        }
+        
+        // 사이트 방문 처리
+        function handleVisit() {
+            try {
+                localStorage.setItem('naratour_popup_visited', new Date().toISOString());
+            } catch (e) {
+                console.log('방문 기록 저장 실패');
+            }
+        }
+        
+        // 오늘 다시 안보기
+        function handleCloseToday() {
+            try {
+                const today = new Date().toDateString();
+                localStorage.setItem('naratour_popup_hidden_until', today);
+                alert('오늘 하루 동안 팝업이 표시되지 않습니다.');
+            } catch (e) {
+                alert('설정 저장에 실패했지만 창을 닫습니다.');
+            }
+            window.close();
+        }
+        
+        // 단순 창 닫기
+        function handleClose() {
+            window.close();
+        }
+        
+        // 창이 닫힐 때 부모 창에 알림
+        window.addEventListener('beforeunload', function() {
+            if (window.opener && !window.opener.closed) {
+                try {
+                    window.opener.postMessage('popup_closed', '*');
+                } catch (e) {
+                    console.log('부모 창 통신 실패');
+                }
+            }
+        });
+        
+        // 디버깅 정보 출력
+        console.log('현재 페이지 URL:', window.location.href);
+        console.log('이미지 경로 확인:', document.getElementById('popup-img').src);
+    </script>
+</body>
+</html>
