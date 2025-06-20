@@ -31,8 +31,77 @@ document.addEventListener('DOMContentLoaded', function() {
         if (tabsContainer) {
             initializeRegionTabs();
         }
+
+        // 팝업 초기화
+        initializePopup();
     }
 });
+
+// 팝업 관련 함수들
+function initializePopup() {
+    // 팝업 이벤트 리스너 등록
+    const popupOverlay = document.getElementById('popup-overlay');
+    
+    if (popupOverlay) {
+        // 오버레이 클릭 시 팝업 닫기
+        popupOverlay.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePopup();
+            }
+        });
+
+        // ESC 키로 팝업 닫기
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && popupOverlay.classList.contains('active')) {
+                closePopup();
+            }
+        });
+
+        // 페이지 로드 후 팝업 표시 (하루에 한 번만)
+        showPopupOnce();
+    }
+}
+
+function showPopup() {
+    const popupOverlay = document.getElementById('popup-overlay');
+    if (popupOverlay) {
+        popupOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+    }
+}
+
+function closePopup() {
+    const popupOverlay = document.getElementById('popup-overlay');
+    if (popupOverlay) {
+        popupOverlay.classList.remove('active');
+        document.body.style.overflow = ''; // 스크롤 복원
+    }
+}
+
+// 하루에 한 번만 팝업 표시
+function showPopupOnce() {
+    try {
+        const today = new Date().toDateString();
+        const lastShown = localStorage.getItem('naratour_popup_last_shown');
+        
+        if (lastShown !== today) {
+            // 3초 후 팝업 표시
+            setTimeout(() => {
+                showPopup();
+                localStorage.setItem('naratour_popup_last_shown', today);
+            }, 3000);
+        }
+    } catch (error) {
+        // localStorage를 사용할 수 없는 경우 (프라이빗 브라우징 등)
+        console.log('localStorage를 사용할 수 없습니다. 팝업을 표시합니다.');
+        setTimeout(showPopup, 3000);
+    }
+}
+
+// 즉시 팝업 표시 (테스트용)
+function showPopupNow() {
+    showPopup();
+}
 
 // 전역 변수로 데이터 캐싱
 let cachedTouristData = null;
