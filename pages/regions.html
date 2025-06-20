@@ -179,6 +179,7 @@
             transition: all 0.2s ease;
             font-size: 0.875rem;
             white-space: nowrap; /* 줄바꿈 방지 */
+            min-width: 70px; /* 최소 너비 설정 */
         }
         
         .region-btn:hover {
@@ -258,6 +259,8 @@
             border-radius: 25px;
             padding: 4px;
             margin-bottom: 20px;
+            min-width: 280px; /* 최소 너비 증가 */
+            width: fit-content; /* 콘텐츠에 맞춰 크기 조정 */
         }
         
         .view-btn {
@@ -270,9 +273,7 @@
             transition: all 0.2s ease;
             white-space: nowrap; /* 줄바꿈 방지 */
             word-break: keep-all; /* 단어 단위로 줄바꿈 */
-            overflow: hidden; /* 넘치는 텍스트 숨김 */
-            text-overflow: ellipsis; /* 말줄임표 표시 */
-            min-width: 80px; /* 최소 너비 설정 */
+            min-width: 90px; /* 최소 너비 설정 */
         }
         
         .view-btn.active {

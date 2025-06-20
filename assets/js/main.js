@@ -32,82 +32,74 @@ document.addEventListener('DOMContentLoaded', function() {
             initializeRegionTabs();
         }
 
-        // 팝업 초기화
-        initializePopup();
+        // 팝업 창 초기화
+        initializePopupWindow();
     }
 });
 
-// 팝업 관련 함수들
-function initializePopup() {
-    // 팝업 이벤트 리스너 등록
-    const popupOverlay = document.getElementById('popup-overlay');
+// 새 창 팝업 관련 함수들
+function initializePopupWindow() {
+    // 페이지 로드 후 팝업 표시 조건 확인
+    checkAndShowPopupWindow();
     
-    if (popupOverlay) {
-        // 오버레이 클릭 시 팝업 일시적으로 닫기
-        popupOverlay.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closePopupTemporary();
-            }
-        });
-
-        // ESC 키로 팝업 일시적으로 닫기
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && popupOverlay.classList.contains('active')) {
-                closePopupTemporary();
-            }
-        });
-
-        // 페이지 로드 후 팝업 표시 조건 확인
-        checkAndShowPopup();
-    }
+    // 팝업창에서 오는 메시지 수신
+    window.addEventListener('message', function(event) {
+        if (event.data === 'popup_closed') {
+            console.log('팝업창이 닫혔습니다.');
+        }
+    });
 }
 
-function showPopup() {
-    const popupOverlay = document.getElementById('popup-overlay');
-    if (popupOverlay) {
-        popupOverlay.classList.add('active');
-        document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
-    }
-}
-
-// 일시적으로 팝업 닫기 (세션 동안만)
-function closePopupTemporary() {
-    const popupOverlay = document.getElementById('popup-overlay');
-    if (popupOverlay) {
-        popupOverlay.classList.remove('active');
-        document.body.style.overflow = ''; // 스크롤 복원
-    }
+// 새 창 팝업 표시
+function showPopupWindow() {
+    const popupFeatures = [
+        'width=600',
+        'height=700',
+        'left=' + (screen.width / 2 - 300),
+        'top=' + (screen.height / 2 - 350),
+        'resizable=yes',
+        'scrollbars=yes',
+        'status=no',
+        'menubar=no',
+        'toolbar=no',
+        'location=no'
+    ].join(',');
     
-    // 세션 동안 팝업이 닫혔다는 플래그 설정
-    sessionStorage.setItem('naratour_popup_closed_temporary', 'true');
-    console.log('팝업이 일시적으로 닫혔습니다.');
-}
-
-// 오늘 다시 안보기로 팝업 닫기 (24시간)
-function closePopupToday() {
-    const popupOverlay = document.getElementById('popup-overlay');
-    if (popupOverlay) {
-        popupOverlay.classList.remove('active');
-        document.body.style.overflow = ''; // 스크롤 복원
-    }
+    // 팝업 HTML 파일 경로 (상대 경로)
+    const popupUrl = 'popup.html';
     
     try {
-        const today = new Date().toDateString();
-        localStorage.setItem('naratour_popup_hidden_until', today);
-        console.log('팝업이 오늘 하루 동안 숨겨졌습니다.');
+        const popup = window.open(popupUrl, 'naratour_popup', popupFeatures);
+        
+        if (!popup) {
+            console.log('팝업이 차단되었습니다. 팝업 차단 해제를 요청합니다.');
+            alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+            return false;
+        }
+        
+        // 팝업이 정상적으로 열렸는지 확인
+        popup.focus();
+        
+        // 팝업이 닫혔는지 주기적으로 확인 (선택사항)
+        const checkClosed = setInterval(function() {
+            if (popup.closed) {
+                clearInterval(checkClosed);
+                console.log('팝업창이 닫혔습니다.');
+            }
+        }, 1000);
+        
+        return true;
     } catch (error) {
-        console.log('localStorage를 사용할 수 없습니다.');
-        // localStorage를 사용할 수 없는 경우 세션 스토리지 사용
-        sessionStorage.setItem('naratour_popup_closed_temporary', 'true');
+        console.error('팝업 열기 실패:', error);
+        return false;
     }
 }
 
 // 팝업 표시 조건 확인
-function checkAndShowPopup() {
+function checkAndShowPopupWindow() {
     try {
         const today = new Date().toDateString();
         const hiddenUntil = localStorage.getItem('naratour_popup_hidden_until');
-        const closedTemporary = sessionStorage.getItem('naratour_popup_closed_temporary');
         
         // 오늘 다시 안보기로 설정되어 있는지 확인
         if (hiddenUntil === today) {
@@ -115,47 +107,37 @@ function checkAndShowPopup() {
             return;
         }
         
-        // 세션 동안 일시적으로 닫혔는지 확인
-        if (closedTemporary === 'true') {
-            console.log('이번 세션에서 팝업이 일시적으로 닫혔습니다.');
-            return;
-        }
-        
-        // 조건을 만족하면 3초 후 팝업 표시
+        // 3초 후 팝업창 표시
         setTimeout(() => {
-            showPopup();
+            const success = showPopupWindow();
+            if (success) {
+                console.log('팝업창이 성공적으로 열렸습니다.');
+            }
         }, 3000);
         
     } catch (error) {
-        // localStorage를 사용할 수 없는 경우
-        console.log('localStorage를 사용할 수 없습니다.');
-        const closedTemporary = sessionStorage.getItem('naratour_popup_closed_temporary');
-        
-        if (closedTemporary !== 'true') {
-            setTimeout(showPopup, 3000);
-        }
+        // localStorage를 사용할 수 없는 경우에도 팝업 표시
+        console.log('localStorage를 사용할 수 없습니다. 팝업을 표시합니다.');
+        setTimeout(() => {
+            showPopupWindow();
+        }, 3000);
     }
+}
+
+// 즉시 팝업 표시 (테스트용)
+function showPopupNow() {
+    showPopupWindow();
 }
 
 // 팝업 상태 리셋 (개발/테스트용)
 function resetPopupStatus() {
     try {
         localStorage.removeItem('naratour_popup_hidden_until');
-        sessionStorage.removeItem('naratour_popup_closed_temporary');
+        localStorage.removeItem('naratour_popup_visited');
         console.log('팝업 상태가 리셋되었습니다.');
     } catch (error) {
         console.log('스토리지 리셋 중 오류가 발생했습니다.');
     }
-}
-
-// 즉시 팝업 표시 (테스트용)
-function showPopupNow() {
-    showPopup();
-}
-
-// 기존 closePopup 함수는 closePopupTemporary로 동작하도록 변경
-function closePopup() {
-    closePopupTemporary();
 }
 
 // 전역 변수로 데이터 캐싱
