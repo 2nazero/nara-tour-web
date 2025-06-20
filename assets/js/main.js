@@ -113,7 +113,7 @@ function checkAndShowPopupWindow() {
             if (success) {
                 console.log('팝업창이 성공적으로 열렸습니다.');
             }
-        }, 3000);
+        }, 10);
         
     } catch (error) {
         // localStorage를 사용할 수 없는 경우에도 팝업 표시
