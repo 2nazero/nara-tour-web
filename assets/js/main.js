@@ -43,22 +43,22 @@ function initializePopup() {
     const popupOverlay = document.getElementById('popup-overlay');
     
     if (popupOverlay) {
-        // 오버레이 클릭 시 팝업 닫기
+        // 오버레이 클릭 시 팝업 일시적으로 닫기
         popupOverlay.addEventListener('click', function(e) {
             if (e.target === this) {
-                closePopup();
+                closePopupTemporary();
             }
         });
 
-        // ESC 키로 팝업 닫기
+        // ESC 키로 팝업 일시적으로 닫기
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape' && popupOverlay.classList.contains('active')) {
-                closePopup();
+                closePopupTemporary();
             }
         });
 
-        // 페이지 로드 후 팝업 표시 (하루에 한 번만)
-        showPopupOnce();
+        // 페이지 로드 후 팝업 표시 조건 확인
+        checkAndShowPopup();
     }
 }
 
@@ -70,37 +70,92 @@ function showPopup() {
     }
 }
 
-function closePopup() {
+// 일시적으로 팝업 닫기 (세션 동안만)
+function closePopupTemporary() {
     const popupOverlay = document.getElementById('popup-overlay');
     if (popupOverlay) {
         popupOverlay.classList.remove('active');
         document.body.style.overflow = ''; // 스크롤 복원
     }
+    
+    // 세션 동안 팝업이 닫혔다는 플래그 설정
+    sessionStorage.setItem('naratour_popup_closed_temporary', 'true');
+    console.log('팝업이 일시적으로 닫혔습니다.');
 }
 
-// 하루에 한 번만 팝업 표시
-function showPopupOnce() {
+// 오늘 다시 안보기로 팝업 닫기 (24시간)
+function closePopupToday() {
+    const popupOverlay = document.getElementById('popup-overlay');
+    if (popupOverlay) {
+        popupOverlay.classList.remove('active');
+        document.body.style.overflow = ''; // 스크롤 복원
+    }
+    
     try {
         const today = new Date().toDateString();
-        const lastShown = localStorage.getItem('naratour_popup_last_shown');
-        
-        if (lastShown !== today) {
-            // 3초 후 팝업 표시
-            setTimeout(() => {
-                showPopup();
-                localStorage.setItem('naratour_popup_last_shown', today);
-            }, 3000);
-        }
+        localStorage.setItem('naratour_popup_hidden_until', today);
+        console.log('팝업이 오늘 하루 동안 숨겨졌습니다.');
     } catch (error) {
-        // localStorage를 사용할 수 없는 경우 (프라이빗 브라우징 등)
-        console.log('localStorage를 사용할 수 없습니다. 팝업을 표시합니다.');
-        setTimeout(showPopup, 3000);
+        console.log('localStorage를 사용할 수 없습니다.');
+        // localStorage를 사용할 수 없는 경우 세션 스토리지 사용
+        sessionStorage.setItem('naratour_popup_closed_temporary', 'true');
+    }
+}
+
+// 팝업 표시 조건 확인
+function checkAndShowPopup() {
+    try {
+        const today = new Date().toDateString();
+        const hiddenUntil = localStorage.getItem('naratour_popup_hidden_until');
+        const closedTemporary = sessionStorage.getItem('naratour_popup_closed_temporary');
+        
+        // 오늘 다시 안보기로 설정되어 있는지 확인
+        if (hiddenUntil === today) {
+            console.log('오늘 하루 팝업이 숨겨져 있습니다.');
+            return;
+        }
+        
+        // 세션 동안 일시적으로 닫혔는지 확인
+        if (closedTemporary === 'true') {
+            console.log('이번 세션에서 팝업이 일시적으로 닫혔습니다.');
+            return;
+        }
+        
+        // 조건을 만족하면 3초 후 팝업 표시
+        setTimeout(() => {
+            showPopup();
+        }, 3000);
+        
+    } catch (error) {
+        // localStorage를 사용할 수 없는 경우
+        console.log('localStorage를 사용할 수 없습니다.');
+        const closedTemporary = sessionStorage.getItem('naratour_popup_closed_temporary');
+        
+        if (closedTemporary !== 'true') {
+            setTimeout(showPopup, 3000);
+        }
+    }
+}
+
+// 팝업 상태 리셋 (개발/테스트용)
+function resetPopupStatus() {
+    try {
+        localStorage.removeItem('naratour_popup_hidden_until');
+        sessionStorage.removeItem('naratour_popup_closed_temporary');
+        console.log('팝업 상태가 리셋되었습니다.');
+    } catch (error) {
+        console.log('스토리지 리셋 중 오류가 발생했습니다.');
     }
 }
 
 // 즉시 팝업 표시 (테스트용)
 function showPopupNow() {
     showPopup();
+}
+
+// 기존 closePopup 함수는 closePopupTemporary로 동작하도록 변경
+function closePopup() {
+    closePopupTemporary();
 }
 
 // 전역 변수로 데이터 캐싱

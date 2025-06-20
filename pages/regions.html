@@ -178,6 +178,7 @@
             cursor: pointer;
             transition: all 0.2s ease;
             font-size: 0.875rem;
+            white-space: nowrap; /* 줄바꿈 방지 */
         }
         
         .region-btn:hover {
@@ -267,6 +268,11 @@
             border-radius: 20px;
             cursor: pointer;
             transition: all 0.2s ease;
+            white-space: nowrap; /* 줄바꿈 방지 */
+            word-break: keep-all; /* 단어 단위로 줄바꿈 */
+            overflow: hidden; /* 넘치는 텍스트 숨김 */
+            text-overflow: ellipsis; /* 말줄임표 표시 */
+            min-width: 80px; /* 최소 너비 설정 */
         }
         
         .view-btn.active {
